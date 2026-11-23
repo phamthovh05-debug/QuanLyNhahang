@@ -1,5 +1,6 @@
 import { Card, CardHeader, PageHeader } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
+import { ClipboardListIcon, CoinsIcon, PackageIcon } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { formatDateTime, formatQty, formatVnd } from '../utils/format';
 
@@ -16,33 +17,35 @@ export function Disposal() {
   return (
     <div className="px-6 py-6">
       <PageHeader
-        title="Hủy / Hao hụt"
-        subtitle="Lịch sử hủy hàng — dữ liệu lô được giữ lại (soft delete, status = CANCELLED)" />
+        title="Hủy / Hao hụt" />
       
 
       <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card className="px-5 py-4">
-          <p className="text-xs text-slate-500">Tổng chi phí hao hụt</p>
-          <p className="tabular mt-1 text-2xl font-semibold text-red-600">
-            {formatVnd(total)}
-          </p>
+        <Card className="!rounded-xl !shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-slate-200 border-l-4 border-l-red-500 !bg-red-100/70 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-700">Tổng chi phí hao hụt</p>
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-50 text-red-700"><CoinsIcon className="h-5 w-5" /></span>
+          </div>
+          <p className="tabular mt-3 text-2xl font-bold text-red-900">{formatVnd(total)}</p>
         </Card>
-        <Card className="px-5 py-4">
-          <p className="text-xs text-slate-500">Số lô đã hủy</p>
-          <p className="tabular mt-1 text-2xl font-semibold text-slate-900">
-            {disposedCount}
-          </p>
+        <Card className="!rounded-xl !shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-slate-200 border-l-4 border-l-orange-500 !bg-orange-100/70 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-700">Số lô đã hủy</p>
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-50 text-orange-700"><PackageIcon className="h-5 w-5" /></span>
+          </div>
+          <p className="tabular mt-3 text-2xl font-bold text-orange-900">{disposedCount}</p>
         </Card>
-        <Card className="px-5 py-4">
-          <p className="text-xs text-slate-500">Số lần ghi nhận</p>
-          <p className="tabular mt-1 text-2xl font-semibold text-slate-900">
-            {rows.length}
-          </p>
+        <Card className="!rounded-xl !shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-slate-200 border-l-4 border-l-violet-500 !bg-violet-100/70 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-700">Số lần ghi nhận</p>
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-50 text-violet-700"><ClipboardListIcon className="h-5 w-5" /></span>
+          </div>
+          <p className="tabular mt-3 text-2xl font-bold text-violet-900">{rows.length}</p>
         </Card>
       </div>
 
       <Card>
-        <CardHeader title="Lịch sử hủy hàng" subtitle={`${rows.length} bản ghi`} />
+        <CardHeader title="Lịch sử hủy hàng" />
         <div className="overflow-x-auto scroll-thin">
           <table className="w-full min-w-[860px] text-sm">
             <thead>

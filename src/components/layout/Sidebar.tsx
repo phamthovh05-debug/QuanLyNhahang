@@ -3,7 +3,6 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   ChevronDownIcon,
   ClipboardListIcon,
-  LogOutIcon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
 } from 'lucide-react';
@@ -28,7 +27,7 @@ export function Sidebar({ mobileOpen, onNavigate }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [closedGroups, setClosedGroups] = useState<string[]>([]);
   const metrics = useMetrics();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const location = useLocation();
 
   const badgeValue: Record<BadgeKey, number> = {
@@ -51,6 +50,17 @@ export function Sidebar({ mobileOpen, onNavigate }: SidebarProps) {
         ? current.filter((item) => item !== title)
         : [...current, title],
     );
+  };
+
+  const isItemActive = (to: string, isActive: boolean) => {
+    if (to === '/cashier') {
+      return location.pathname === '/cashier' &&
+        (location.search === '' || location.search === '?screen=payment');
+    }
+    if (to.startsWith('/cashier?')) {
+      return `${location.pathname}${location.search}` === to;
+    }
+    return isActive;
   };
 
   return (
@@ -134,26 +144,22 @@ export function Sidebar({ mobileOpen, onNavigate }: SidebarProps) {
                         <li key={item.to}>
                           <NavLink
                             to={item.to}
-                            end={item.to === '/'}
+                            end={item.to === '/' || item.to === '/cashier' || item.to === '/kitchen'}
                             onClick={onNavigate}
                             title={collapsed ? item.label : undefined}
                             className={({ isActive }) => {
-                              const active = item.to.includes('?')
-                                ? `${location.pathname}${location.search}` === item.to
-                                : isActive;
+                              const active = isItemActive(item.to, isActive);
                               return `group relative flex min-h-10 items-center rounded-lg text-[13px] transition-colors ${
                                 collapsed ? 'justify-center px-2' : 'gap-3 px-3'
-                              } ${active ? 'bg-blue-400/15 font-semibold text-blue-100' : 'font-medium text-slate-300 hover:bg-white/5 hover:text-white'}`;
+                              } ${active ? item.to === '/invoices' ? 'bg-blue-500/30 font-bold text-white' : 'bg-blue-400/15 font-semibold text-blue-100' : 'font-medium text-slate-300 hover:bg-white/5 hover:text-white'}`;
                             }}
                           >
                             {({ isActive }) => {
-                              const active = item.to.includes('?')
-                                ? `${location.pathname}${location.search}` === item.to
-                                : isActive;
+                              const active = isItemActive(item.to, isActive);
                               return (
                                 <>
                                   {active && <span className="absolute bottom-2 left-0 top-2 w-[3px] rounded-r-full bg-blue-400" />}
-                                  <item.icon size={18} className={`shrink-0 transition-colors ${active ? 'text-blue-300' : 'text-slate-400 group-hover:text-blue-200'}`} />
+                                  <item.icon size={18} className={`shrink-0 transition-colors ${active ? item.to === '/invoices' ? 'text-white' : 'text-blue-300' : 'text-slate-400 group-hover:text-blue-200'}`} />
                                   {!collapsed && (
                                     <>
                                       <span className="min-w-0 flex-1 truncate">{item.label}</span>
@@ -179,18 +185,6 @@ export function Sidebar({ mobileOpen, onNavigate }: SidebarProps) {
           })}
         </nav>
 
-        <div className="border-t border-white/10 p-3">
-          {!collapsed ? (
-            <button onClick={logout} className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-slate-300 transition-colors hover:bg-white/5 hover:text-white">
-              <LogOutIcon className="h-4 w-4" />
-              Đăng xuất
-            </button>
-          ) : (
-            <button onClick={logout} aria-label="Đăng xuất" title="Đăng xuất" className="mx-auto flex h-9 w-9 items-center justify-center rounded-lg text-slate-300 transition hover:bg-white/10 hover:text-white">
-              <LogOutIcon className="h-4 w-4" />
-            </button>
-          )}
-        </div>
       </aside>
     </>
   );

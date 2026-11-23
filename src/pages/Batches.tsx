@@ -57,12 +57,11 @@ export function Batches() {
     <div className="px-6 py-6">
       <PageHeader
         title="Lô hàng"
-        subtitle="Mọi nguyên liệu được quản lý theo batch/lot — không gộp tổng số lượng"
         action={
-        <Link to="/receive">
+        <Link to="/warehouse/requests">
             <Button>
               <PackagePlusIcon className="h-4 w-4" />
-              + NHẬP HÀNG
+              ĐỀ NGHỊ NHẬP KHO
             </Button>
           </Link>
         } />

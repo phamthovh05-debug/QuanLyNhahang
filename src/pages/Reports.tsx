@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ArrowUpRightIcon, BarChart3Icon, ClipboardCheckIcon, PackageIcon, ReceiptTextIcon, SendIcon } from 'lucide-react';
+import { ArrowUpRightIcon, BarChart3Icon, CircleDollarSignIcon, ClipboardCheckIcon, PackageIcon, ReceiptTextIcon, SendIcon } from 'lucide-react';
 import { Card, CardHeader, PageHeader } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Field, inputClass } from '../components/ui/Field';
@@ -10,25 +10,36 @@ import type { ReportRecord } from '../types';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
-function Metric({ label, value, note }: {label: string;value: string;note?: string;}) {
-  return <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
-    <p className="text-xs font-medium text-slate-500">{label}</p>
-    <p className="tabular mt-1.5 text-xl font-bold tracking-tight text-slate-900">{value}</p>
-    {note && <p className="mt-1 text-xs text-slate-400">{note}</p>}
+type MetricTone = 'default' | 'blue' | 'emerald' | 'orange' | 'violet';
+
+function Metric({ label, value, note, tone = 'default' }: {label: string;value: string;note?: string;tone?: MetricTone;}) {
+  const styles: Record<MetricTone, {card:string;value:string}> = {
+    default: { card: 'border-slate-100 bg-slate-50/80', value: 'text-slate-900' },
+    blue: { card: 'border-blue-200 !bg-blue-100/70', value: 'text-blue-900' },
+    emerald: { card: 'border-emerald-200 !bg-emerald-100/70', value: 'text-emerald-900' },
+    orange: { card: 'border-orange-200 !bg-orange-100/70', value: 'text-orange-900' },
+    violet: { card: 'border-violet-200 !bg-violet-100/70', value: 'text-violet-900' }
+  };
+  const style = styles[tone];
+  return <div className={`rounded-xl border p-4 ${style.card}`}>
+    <p className={`text-xs ${tone === 'default' ? 'font-medium text-slate-500' : 'font-bold uppercase tracking-wide text-slate-700'}`}>{label}</p>
+    <p className={`tabular mt-1.5 text-xl font-bold tracking-tight ${style.value}`}>{value}</p>
+    {note && <p className={`mt-1 text-xs ${tone === 'default' ? 'text-slate-400' : 'inline-flex rounded-full bg-white/70 px-2.5 py-1 font-medium text-slate-600'}`}>{note}</p>}
   </div>;
 }
 
 function ReportHistoryCard({ report }: {report: ReportRecord;}) {
   const revenue = report.kind === 'REVENUE';
+  const financial = report.kind === 'FINANCIAL';
   return (
     <Card className="overflow-hidden">
       <div className="flex flex-wrap items-start justify-between gap-3 px-5 py-4">
         <div className="flex items-start gap-3">
-          <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${revenue ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'}`}>
-            {revenue ? <ReceiptTextIcon className="h-5 w-5" /> : <PackageIcon className="h-5 w-5" />}
+          <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${financial ? 'bg-blue-50 text-blue-700' : revenue ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
+            {financial ? <CircleDollarSignIcon className="h-5 w-5" /> : revenue ? <ReceiptTextIcon className="h-5 w-5" /> : <PackageIcon className="h-5 w-5" />}
           </span>
           <div>
-            <h3 className="font-bold text-slate-900">{revenue ? 'Báo cáo doanh thu' : 'Báo cáo cân đối kho'}</h3>
+            <h3 className="font-bold text-slate-900">{financial ? 'Báo cáo tài chính' : revenue ? 'Báo cáo doanh thu' : 'Báo cáo cân đối kho'}</h3>
             <p className="mt-1 text-xs text-slate-500">{report.periodStart} → {report.periodEnd} · {report.id}</p>
           </div>
         </div>
@@ -37,19 +48,58 @@ function ReportHistoryCard({ report }: {report: ReportRecord;}) {
         </span>
       </div>
       <div className="grid grid-cols-2 gap-3 border-t border-slate-100 p-4 sm:grid-cols-4">
-        {revenue ? <>
+        {financial ? <>
+          <Metric label="Doanh thu thuần" value={formatVnd(report.metrics.netRevenue ?? 0)} />
+          <Metric label="Giá vốn nguyên liệu" value={formatVnd(report.metrics.cogs ?? 0)} />
+          <Metric label="Chi phí hoạt động" value={formatVnd(report.metrics.operatingExpenses ?? 0)} />
+          <Metric label="Lợi nhuận tạm tính" value={formatVnd(report.metrics.estimatedProfit ?? 0)} />
+        </> : revenue ? <>
           <Metric label="Doanh thu thực thu" value={formatVnd(report.metrics.netRevenue ?? 0)} />
           <Metric label="Hóa đơn" value={String(report.metrics.invoiceCount ?? 0)} />
           <Metric label="Giảm giá" value={formatVnd(report.metrics.discount ?? 0)} />
           <Metric label="VAT" value={formatVnd(report.metrics.vat ?? 0)} />
         </> : <>
-          <Metric label="Giá trị tồn cuối" value={formatVnd(report.metrics.closingValue ?? 0)} />
-          <Metric label="Giá trị nhập" value={formatVnd(report.metrics.receivedValue ?? 0)} />
-          <Metric label="Giá trị xuất dùng" value={formatVnd(report.metrics.issuedValue ?? 0)} />
-          <Metric label="Mã hàng lệch kiểm kê" value={String(report.metrics.varianceCount ?? 0)} />
+          <Metric label="Giá trị tồn cuối" value={formatVnd(report.metrics.closingValue ?? 0)} tone="blue" />
+          <Metric label="Giá trị nhập" value={formatVnd(report.metrics.receivedValue ?? 0)} tone="emerald" />
+          <Metric label="Giá trị xuất dùng" value={formatVnd(report.metrics.issuedValue ?? 0)} tone="orange" />
+          <Metric label="Mã hàng lệch kiểm kê" value={String(report.metrics.varianceCount ?? 0)} tone="violet" />
         </>}
       </div>
-      {!revenue && !!report.stockLines?.length && (
+      {financial && report.financialDetails && <>
+        <details className="border-t border-slate-100">
+          <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-brand-700">Chi tiết doanh thu ({report.financialDetails.revenueRows.length})</summary>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[700px] text-left text-xs">
+              <thead className="bg-slate-50 text-slate-500"><tr>{['Ngày ghi nhận', 'Mã hóa đơn', 'Trước giảm giá', 'Giảm giá', 'Doanh thu thuần', 'Trạng thái'].map(label => <th key={label} className="px-4 py-2 font-medium">{label}</th>)}</tr></thead>
+              <tbody className="divide-y divide-slate-100">
+                {report.financialDetails.revenueRows.map(row => <tr key={row.id}>
+                  <td className="whitespace-nowrap px-4 py-2">{formatDateTime(row.date)}</td><td className="px-4 py-2 font-semibold">{row.id}</td>
+                  <td className="whitespace-nowrap px-4 py-2 text-right">{formatVnd(row.subtotal)}</td><td className="whitespace-nowrap px-4 py-2 text-right">{formatVnd(row.discount)}</td>
+                  <td className="whitespace-nowrap px-4 py-2 text-right font-semibold">{formatVnd(row.netRevenue)}</td><td className="px-4 py-2">{row.status}</td>
+                </tr>)}
+                {!report.financialDetails.revenueRows.length && <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-500">Chưa có doanh thu trong kỳ.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </details>
+        <details className="border-t border-slate-100">
+          <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-brand-700">Chi tiết chi phí ({report.financialDetails.expenseRows.length})</summary>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] text-left text-xs">
+              <thead className="bg-slate-50 text-slate-500"><tr>{['Ngày ghi nhận', 'Mã chứng từ', 'Nội dung', 'Nhóm chi phí', 'Số tiền', 'Trạng thái'].map(label => <th key={label} className="px-4 py-2 font-medium">{label}</th>)}</tr></thead>
+              <tbody className="divide-y divide-slate-100">
+                {report.financialDetails.expenseRows.map((row, index) => <tr key={`${row.id}-${index}`}>
+                  <td className="whitespace-nowrap px-4 py-2">{formatDateTime(row.date)}</td><td className="px-4 py-2 font-semibold">{row.id}</td>
+                  <td className="px-4 py-2">{row.description}</td><td className="px-4 py-2">{row.group}</td>
+                  <td className="whitespace-nowrap px-4 py-2 text-right font-semibold">{formatVnd(row.amount)}</td><td className="px-4 py-2">{row.status}</td>
+                </tr>)}
+                {!report.financialDetails.expenseRows.length && <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-500">Chưa có chi phí trong kỳ.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      </>}
+      {report.kind === 'STOCK_BALANCE' && !!report.stockLines?.length && (
         <details className="border-t border-slate-100">
           <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-brand-700">Xem cân đối theo từng mã sản phẩm</summary>
           <div className="overflow-x-auto">
@@ -113,8 +163,8 @@ export function Reports() {
   return (
     <div className="px-6 py-6">
       <PageHeader
-        title={isManager ? 'Báo cáo gửi đến quản lý' : isCashier ? 'Báo cáo doanh thu' : 'Báo cáo cân đối kho'}
-        subtitle={isManager ? 'Xem bản chụp báo cáo do thu ngân và nhân viên kho gửi; dữ liệu giao dịch gốc không thể sửa tại đây.' : 'Chọn kỳ báo cáo, đối chiếu số liệu nguồn rồi gửi bản báo cáo đến Quản lý.'}
+        title={isManager ? 'Báo cáo tài chính' : isCashier ? 'Báo cáo doanh thu' : 'Báo cáo cân đối kho'}
+        subtitle={isWarehouse ? undefined : isManager ? 'Xem các báo cáo do kế toán, thu ngân và nhân viên kho gửi; số liệu được lưu theo bản chụp tại thời điểm gửi.' : 'Chọn kỳ báo cáo, đối chiếu số liệu nguồn rồi gửi bản báo cáo đến Quản lý.'}
       />
 
       {canSubmit && <Card className="mb-5 overflow-hidden">
@@ -140,16 +190,16 @@ export function Reports() {
             <Metric label="Giảm giá" value={formatVnd(discount)} />
             <Metric label="VAT" value={formatVnd(vat)} />
           </> : <>
-            <Metric label="Giá trị tồn sổ cuối kỳ" value={formatVnd(stockValue)} note={`Theo sổ đến ${periodEnd}`} />
-            <Metric label="Nhập trong kỳ" value={formatVnd(movements.filter((tx) => tx.type === 'NHẬP KHO').reduce((sum, tx) => sum + tx.value, 0))} />
-            <Metric label="Xuất dùng trong kỳ" value={formatVnd(movements.filter((tx) => tx.type === 'BÁN HÀNG' || tx.type === 'XUẤT KHO').reduce((sum, tx) => sum + tx.value, 0))} />
-            <Metric label="Giao dịch kho" value={String(movements.length)} />
+            <Metric label="Giá trị tồn sổ cuối kỳ" value={formatVnd(stockValue)} note={`Theo sổ đến ${periodEnd}`} tone="blue" />
+            <Metric label="Nhập trong kỳ" value={formatVnd(movements.filter((tx) => tx.type === 'NHẬP KHO').reduce((sum, tx) => sum + tx.value, 0))} tone="emerald" />
+            <Metric label="Xuất dùng trong kỳ" value={formatVnd(movements.filter((tx) => tx.type === 'BÁN HÀNG' || tx.type === 'XUẤT KHO').reduce((sum, tx) => sum + tx.value, 0))} tone="orange" />
+            <Metric label="Giao dịch kho" value={String(movements.length)} tone="violet" />
           </>}
         </div>
       </Card>}
 
       {isWarehouse && <Card className="mb-5">
-        <CardHeader title="Đối chiếu tồn kho thực tế" subtitle="Nhập số kiểm kê theo mã hàng; báo cáo đối chiếu với tồn sổ tại ngày kết thúc kỳ." />
+        <CardHeader title="Đối chiếu tồn kho thực tế" />
         <div className="overflow-x-auto">
           <table className="w-full min-w-[680px] text-sm">
             <thead className="bg-slate-50 text-left text-xs text-slate-500"><tr><th className="px-5 py-3">Mã sản phẩm</th><th className="px-5 py-3">Sản phẩm</th><th className="px-5 py-3 text-right">Tồn sổ cuối kỳ</th><th className="px-5 py-3 text-right">Tồn tối thiểu</th><th className="px-5 py-3 text-right">Kiểm kê thực tế</th><th className="px-5 py-3 text-right">Giá trị tồn cuối kỳ</th></tr></thead>
@@ -169,15 +219,14 @@ export function Reports() {
       </Card>}
 
       <div className="mb-3 flex items-center justify-between gap-3">
-        <div><h2 className="text-base font-bold text-slate-900">{isManager ? 'Hộp thư báo cáo' : 'Lịch sử báo cáo đã gửi'}</h2><p className="mt-1 text-xs text-slate-500">{visibleReports.length} báo cáo</p></div>
+        <div><h2 className="text-base font-bold text-slate-900">{isManager ? 'Báo cáo tài chính đã nhận' : 'Lịch sử báo cáo đã gửi'}</h2><p className="mt-1 text-xs text-slate-500">{visibleReports.length} báo cáo</p></div>
       </div>
       {visibleReports.length === 0 ? <Card className="px-5 py-12 text-center">
         <BarChart3Icon className="mx-auto h-8 w-8 text-slate-300" />
         <p className="mt-3 text-sm font-semibold text-slate-700">Chưa có báo cáo được gửi</p>
-        <p className="mt-1 text-xs text-slate-500">{isManager ? 'Báo cáo của thu ngân và kho sẽ xuất hiện tại đây.' : 'Tạo báo cáo theo kỳ để lưu bản chụp và chuyển quản lý xem.'}</p>
+        <p className="mt-1 text-xs text-slate-500">{isManager ? 'Báo cáo do kế toán, thu ngân và kho gửi sẽ xuất hiện tại đây.' : 'Tạo báo cáo theo kỳ để lưu bản chụp và chuyển quản lý xem.'}</p>
       </Card> : <div className="space-y-4">{visibleReports.map((report) => <ReportHistoryCard key={report.id} report={report} />)}</div>}
 
-      <p className="mt-5 text-xs leading-5 text-slate-400">Dữ liệu demo được lưu trong state của trình duyệt và mất khi tải lại ứng dụng; thao tác gửi ở đây chuyển báo cáo giữa các vai trò trong cùng phiên, chưa gửi lên server.</p>
     </div>
   );
 }

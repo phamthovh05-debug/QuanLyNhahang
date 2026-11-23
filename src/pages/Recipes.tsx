@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { CalculatorIcon, MinusIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { PencilIcon, PlusIcon, SearchIcon, Trash2Icon } from 'lucide-react';
 import { Card, CardHeader, PageHeader } from '../components/ui/Card';
-import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
 import { formatQty, formatVnd } from '../utils/format';
@@ -12,19 +12,24 @@ import type { RecipeItem } from '../types';
 export function Recipes() {
   const { dishes, ingredients, ingredientOf, batches, saveRecipe } = useApp();
   const { user } = useAuth();
-  const canEdit = user?.role === 'Quản lý';
+  const canEdit = user?.role === 'Bếp';
   const recipeDishes = dishes.filter((item) => !item.readyMade);
   const [selectedId, setSelectedId] = useState(recipeDishes[0]?.id ?? '');
-  const [portions, setPortions] = useState(5);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<RecipeItem[]>([]);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [search, setSearch] = useState('');
 
   const dish = recipeDishes.find((d) => d.id === selectedId) ?? recipeDishes[0];
+  const filteredDishes = recipeDishes.filter((item) =>
+    item.name.toLowerCase().includes(search.trim().toLowerCase()),
+  );
 
   useEffect(() => {
     setEditing(false);
+    setConfirmDelete(false);
     setDraft(dish?.recipe ?? []);
-  }, [dish?.id, dish?.recipe]);
+  }, [canEdit, dish?.id, dish?.recipe]);
 
   if (!dish) return null;
 
@@ -35,30 +40,55 @@ export function Recipes() {
   return (
     <div className="px-6 py-6">
       <PageHeader
-        title={canEdit ? 'Quản lý công thức' : 'Sổ công thức'}
-        subtitle="Định lượng nguyên liệu cho từng món — cơ sở để hệ thống trừ kho khi thanh toán" />
+        title="Quản lý công thức"
+        subtitle="Định lượng nguyên liệu cho từng món ăn." />
       
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
         <Card className="xl:col-span-4">
-          <CardHeader title="Món ăn cần chế biến" subtitle={`${recipeDishes.length} món`} />
-          <ul className="max-h-[620px] divide-y divide-slate-100 overflow-y-auto scroll-thin">
-            {recipeDishes.map((d) =>
+          <CardHeader title="Danh sách món ăn" subtitle={`${recipeDishes.length} món`} />
+          <div className="border-b border-slate-100 p-4">
+            <div className="relative">
+              <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Tìm món ăn..."
+                aria-label="Tìm món ăn"
+                className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-800 placeholder:text-slate-400 transition-colors focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+          </div>
+          <ul className="max-h-[620px] space-y-2 overflow-y-auto p-3 scroll-thin">
+            {filteredDishes.map((d) =>
             <li key={d.id}>
                 <button
                 onClick={() => setSelectedId(d.id)}
-                className={`flex w-full items-center gap-3 px-5 py-3 text-left transition-colors duration-150 ease-out ${
-                dish.id === d.id ? 'bg-brand-50' : 'hover:bg-slate-50'}`
+                className={`flex w-full items-center gap-3 rounded-xl border border-l-4 px-3 py-3 text-left transition-colors duration-150 ease-out ${
+                dish.id === d.id
+                  ? 'border-blue-200 border-l-brand-700 bg-brand-50 shadow-sm'
+                  : 'border-transparent border-l-transparent hover:border-slate-200 hover:bg-slate-50'}`
                 }>
                 
                   <img src={d.image} alt="" className="h-10 w-10 rounded-lg object-cover" />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-slate-900">{d.name}</p>
-                    <p className="tabular text-xs text-slate-500">
-                      {formatVnd(d.price)} · {d.recipe.length ? `${d.recipe.length} nguyên liệu` : 'chưa có công thức'}
-                    </p>
+                    <p className="truncate text-sm font-semibold text-slate-900">{d.name}</p>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      <span className="tabular text-sm font-bold text-brand-700">{formatVnd(d.price)}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                        d.recipe.length ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'
+                      }`}>
+                        {d.recipe.length ? `${d.recipe.length} nguyên liệu` : 'Chưa có công thức'}
+                      </span>
+                    </div>
                   </div>
                 </button>
+              </li>
+            )}
+            {!filteredDishes.length && (
+              <li className="px-3 py-8 text-center text-sm text-slate-500">
+                Không tìm thấy món ăn phù hợp.
               </li>
             )}
           </ul>
@@ -66,36 +96,67 @@ export function Recipes() {
 
         <div className="space-y-4 xl:col-span-8">
           <Card>
-            <CardHeader
-              title={dish.name}
-              subtitle={`Giá bán ${formatVnd(dish.price)} · Giá vốn ${formatVnd(cost)} / phần`}
-              action={
-              <div className="flex items-center gap-2">
-                  <Badge tone="green">Biên {dish.price ? ((dish.price - cost) / dish.price * 100).toFixed(0) : 0}%</Badge>
-                  {canEdit && !editing &&
-                <Button size="sm" variant="secondary" onClick={() => setEditing(true)}>
-                      <PencilIcon className="h-3.5 w-3.5" />
-                      Sửa công thức
-                    </Button>
-                }
+            <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
+              <div className="min-w-0">
+                <h2 className="truncate text-2xl font-bold tracking-tight text-[#172b4d]">{dish.name}</h2>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-800">
+                    Giá bán · {formatVnd(dish.price)}
+                  </span>
+                  <span className="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">
+                    Giá vốn · {formatVnd(cost)} / phần
+                  </span>
                 </div>
-              } />
+              </div>
+              <div className="flex items-center gap-2">
+                  {canEdit && editing && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={unused.length === 0}
+                      onClick={() => setDraft((items) => [...items, { ingredientId: unused[0].id, qty: 0.1 }])}>
+                      <PlusIcon className="h-3.5 w-3.5" />
+                      Thêm nguyên liệu
+                    </Button>
+                  )}
+                  {canEdit && !editing &&
+                <>
+                  <Button size="sm" variant="secondary" onClick={() => setEditing(true)}>
+                      <PencilIcon className="h-3.5 w-3.5" />
+                      {dish.recipe.length ? 'Sửa công thức' : 'Thêm công thức'}
+                    </Button>
+                  {dish.recipe.length > 0 && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-red-600 hover:bg-red-50"
+                      aria-label={`Xóa công thức ${dish.name}`}
+                      title="Xóa công thức"
+                      onClick={() => setConfirmDelete(true)}>
+                      <Trash2Icon className="h-4 w-4" />
+                    </Button>
+                  )}
+                </>
+                }
+              </div>
+            </div>
             
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500">
-                  <th className="px-5 py-2.5 font-medium">Nguyên liệu</th>
-                  <th className="px-5 py-2.5 text-right font-medium">Định lượng / phần</th>
-                  <th className="px-5 py-2.5 text-right font-medium">Giá vốn</th>
-                  <th className="px-5 py-2.5 text-right font-medium">Tồn khả dụng</th>
-                  {editing && <th className="w-12 px-3" />}
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead className="bg-slate-50">
+                <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-600">
+                  <th className="px-5 py-3 font-semibold">Nguyên liệu</th>
+                  <th className="px-5 py-3 text-right font-semibold">Định lượng / phần</th>
+                  <th className="px-5 py-3 text-right font-semibold">Giá vốn</th>
+                  <th className="px-5 py-3 text-right font-semibold">Tồn khả dụng</th>
+                  {editing && <th className="w-12 px-3 py-3" />}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {recipe.map((r, idx) => {
                   const ing = ingredientOf(r.ingredientId);
                   return (
-                    <tr key={r.ingredientId}>
+                    <tr key={r.ingredientId} className="transition-colors duration-150 hover:bg-slate-50">
                       <td className="px-5 py-2.5 font-medium text-slate-900">
                         {editing ?
                         <select
@@ -113,7 +174,7 @@ export function Recipes() {
                         ing.name
                         }
                       </td>
-                      <td className="tabular px-5 py-2.5 text-right">
+                      <td className="tabular px-5 py-2.5 text-right font-semibold text-slate-900">
                         {editing ?
                         <span className="inline-flex items-center gap-1.5">
                             <input
@@ -132,8 +193,8 @@ export function Recipes() {
                         formatQty(r.qty, ing.unit)
                         }
                       </td>
-                      <td className="tabular px-5 py-2.5 text-right text-slate-600">{formatVnd(r.qty * ing.refCost)}</td>
-                      <td className="tabular px-5 py-2.5 text-right text-slate-600">{formatQty(availableQty(batches, ing.id), ing.unit)}</td>
+                      <td className="tabular px-5 py-2.5 text-right font-medium text-slate-700">{formatVnd(r.qty * ing.refCost)}</td>
+                      <td className="tabular px-5 py-2.5 text-right font-semibold text-slate-900">{formatQty(availableQty(batches, ing.id), ing.unit)}</td>
                       {editing &&
                       <td className="px-3">
                           <button
@@ -151,23 +212,15 @@ export function Recipes() {
                 {recipe.length === 0 &&
                 <tr>
                     <td colSpan={5} className="px-5 py-8 text-center text-sm text-slate-500">
-                      Món chưa có công thức{canEdit ? ' — nhấn “Sửa công thức” để thêm nguyên liệu.' : '.'}
+                      Món chưa có công thức{canEdit ? ' — chọn “Thêm công thức” để khai báo nguyên liệu.' : '.'}
                     </td>
                   </tr>
                 }
               </tbody>
             </table>
+            </div>
             {editing &&
-            <div className="flex items-center gap-2 border-t border-slate-200 px-5 py-3">
-                <Button
-                size="sm"
-                variant="ghost"
-                disabled={unused.length === 0}
-                onClick={() => setDraft((d) => [...d, { ingredientId: unused[0].id, qty: 0.1 }])}>
-                
-                  <PlusIcon className="h-3.5 w-3.5" />
-                  Thêm nguyên liệu
-                </Button>
+            <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-5 py-3">
                 <div className="ml-auto flex gap-2">
                   <Button size="sm" variant="secondary" onClick={() => {setDraft(dish.recipe);setEditing(false);}}>
                     Hủy
@@ -177,53 +230,26 @@ export function Recipes() {
                   disabled={draft.some((r) => !(r.qty > 0))}
                   onClick={() => {saveRecipe(dish.id, draft);setEditing(false);}}>
                   
-                    Lưu công thức
+                    Lưu
                   </Button>
                 </div>
               </div>
             }
           </Card>
-
-          <Card>
-            <CardHeader
-              title="Mô phỏng trừ kho"
-              subtitle="Khi thanh toán, định lượng nhân với số phần đã bán"
-              action={
-              <div className="flex items-center gap-1">
-                  <button onClick={() => setPortions((p) => Math.max(1, p - 1))} aria-label="Giảm số phần" className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 hover:bg-slate-50">
-                    <MinusIcon className="h-3.5 w-3.5" />
-                  </button>
-                  <span className="tabular w-12 text-center text-sm font-semibold">{portions}</span>
-                  <button onClick={() => setPortions((p) => p + 1)} aria-label="Tăng số phần" className="flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 hover:bg-slate-50">
-                    <PlusIcon className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              } />
-            
-            <div className="px-5 py-4">
-              <p className="flex items-center gap-2 text-sm text-slate-600">
-                <CalculatorIcon className="h-4 w-4 text-brand-600" />
-                Bán <strong>{portions}</strong> phần {dish.name} → hệ thống trừ:
-              </p>
-              <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {recipe.map((r) => {
-                  const ing = ingredientOf(r.ingredientId);
-                  const need = r.qty * portions;
-                  return (
-                    <li key={r.ingredientId} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2.5 text-sm">
-                      <span className="text-slate-700">{ing.name}</span>
-                      <span className="tabular">
-                        <span className="font-semibold text-red-600">−{formatQty(need, ing.unit)}</span>
-                        <span className="ml-2 text-slate-500">còn {formatQty(Math.max(availableQty(batches, ing.id) - need, 0), ing.unit)}</span>
-                      </span>
-                    </li>);
-
-                })}
-              </ul>
-            </div>
-          </Card>
         </div>
       </div>
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Xóa công thức"
+        message={<>Bạn có chắc muốn xóa công thức của món <strong>{dish.name}</strong>? Thao tác này không thể hoàn tác.</>}
+        confirmLabel="Xóa công thức"
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={() => {
+          saveRecipe(dish.id, []);
+          setDraft([]);
+          setEditing(false);
+          setConfirmDelete(false);
+        }} />
     </div>);
 
 }

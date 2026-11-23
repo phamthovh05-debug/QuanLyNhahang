@@ -17,8 +17,8 @@ import { formatVnd } from '../../utils/format';
 import { billableQty, LINE_LABEL, LINE_TONE, orderTotals } from '../../utils/order';
 import type { Order, OrderLine } from '../../types';
 
-/** Phục vụ chỉ được sửa bản nháp chưa gửi */
-const editable = (l: OrderLine) => l.status === 'DRAFT';
+/** Phục vụ được sửa món nháp hoặc đang chờ bếp nhận. */
+const editable = (l: OrderLine) => l.status === 'DRAFT' || l.status === 'PENDING';
 
 export function OrderTicket({ order }: {order: Order | undefined;}) {
   const { updateLine, removeLine, submitOrder, showToast, dishOf } = useApp();
@@ -112,7 +112,13 @@ export function OrderTicket({ order }: {order: Order | undefined;}) {
 
           <span className="flex items-center gap-1.5 text-xs text-slate-400">
               <LockIcon className="h-3 w-3" />
-              ×{l.qty} · Order đã gửi, không thể sửa tại đây
+                ×{l.qty} · {l.status === 'COOKING'
+                  ? 'Bếp đang chế biến'
+                  : l.status === 'READY'
+                    ? 'Món đã hoàn thành'
+                    : l.status === 'CASHIER_PENDING'
+                      ? 'Đã chuyển thu ngân'
+                      : 'Không thể sửa món này'}
             </span>
           }
           <span className="tabular text-sm font-semibold text-slate-900">
@@ -192,7 +198,7 @@ export function OrderTicket({ order }: {order: Order | undefined;}) {
               setNoteLine(null);
             }}>
             
-              Lưu ghi chú
+              Lưu
             </Button>
           </>
         }>

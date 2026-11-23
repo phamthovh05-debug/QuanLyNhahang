@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Card, CardHeader, PageHeader } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -11,6 +11,80 @@ import type { IngredientGroup, Unit } from '../types';
 
 function localDate(date:Date) {
   return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+}
+
+export function WarehouseReceiptList() {
+  const { transactions, batches, suppliers } = useApp();
+  const receipts = new Map<string, { id: string; transactionId: string; date: string; supplierId: string; staff: string; total: number; lineCount: number }>();
+
+  transactions.filter((transaction) => transaction.type === 'NHẬP KHO').forEach((transaction) => {
+    const batch = batches.find((item) => item.id === transaction.batchId);
+    if (!batch) return;
+    const id = batch.receiptLotCode ?? batch.id;
+    const existing = receipts.get(id);
+    if (existing) {
+      existing.total += transaction.value;
+      existing.lineCount += 1;
+    } else {
+      receipts.set(id, { id, transactionId: transaction.id, date: transaction.at, supplierId: batch.supplierId, staff: transaction.user, total: transaction.value, lineCount: 1 });
+    }
+  });
+
+  const rows = [...receipts.values()].sort((a, b) => b.date.localeCompare(a.date));
+  return <div className="px-6 py-6">
+    <PageHeader title="Phiếu nhập kho"/>
+    <Card className="overflow-hidden">
+      <CardHeader title="Lịch sử phiếu nhập"/>
+      {rows.length ? <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-sm">
+        <thead className="bg-slate-50 text-left text-xs text-slate-500"><tr><th className="px-4 py-3">Mã phiếu nhập</th><th className="px-4 py-3">Ngày nhập</th><th className="px-4 py-3">Nhà cung cấp</th><th className="px-4 py-3">Người lập phiếu</th><th className="px-4 py-3">Số mặt hàng</th><th className="px-4 py-3 text-right">Tổng tiền</th><th className="px-4 py-3"/></tr></thead>
+        <tbody className="divide-y divide-slate-100">{rows.map((row) => <tr key={row.id}><td className="px-4 py-3 font-semibold">{row.id}</td><td className="px-4 py-3">{formatDateTime(row.date)}</td><td className="px-4 py-3">{suppliers.find((supplier) => supplier.id === row.supplierId)?.name ?? '—'}</td><td className="px-4 py-3">{row.staff}</td><td className="px-4 py-3">{row.lineCount}</td><td className="px-4 py-3 text-right font-semibold">{formatVnd(row.total)}</td><td className="px-4 py-3 text-right"><Link to={`/warehouse/receipt/${encodeURIComponent(row.transactionId)}`}><Button size="sm" variant="secondary">Chi tiết</Button></Link></td></tr>)}</tbody>
+      </table></div> : <p className="py-12 text-center text-sm text-slate-500">Chưa có phiếu nhập kho.</p>}
+    </Card>
+  </div>;
+}
+
+export function WarehouseReceiptDetail() {
+  const { transactionId } = useParams<{ transactionId: string }>();
+  const navigate = useNavigate();
+  const { transactions, batches, suppliers, ingredientOf } = useApp();
+  const transaction = transactions.find((item) => item.id === transactionId && item.type === 'NHẬP KHO');
+  const sourceBatch = transaction && batches.find((batch) => batch.id === transaction.batchId);
+
+  if (!transaction || !sourceBatch) {
+    return <div className="px-6 py-6"><PageHeader title="Phiếu nhập kho"/><Card className="p-5"><p className="text-sm text-slate-600">Không tìm thấy phiếu nhập kho liên kết với chứng từ này.</p><Button className="mt-4" variant="secondary" onClick={() => navigate(-1)}>Quay lại</Button></Card></div>;
+  }
+
+  const receiptBatches = sourceBatch.receiptLotCode
+    ? batches.filter((batch) => batch.receiptLotCode === sourceBatch.receiptLotCode)
+    : [sourceBatch];
+  const rows = receiptBatches.flatMap((batch) => {
+    const tx = transactions.find((item) => item.type === 'NHẬP KHO' && item.batchId === batch.id);
+    return tx ? [{ batch, tx }] : [];
+  });
+  const supplier = suppliers.find((item) => item.id === sourceBatch.supplierId);
+  const total = rows.reduce((sum, row) => sum + row.tx.value, 0);
+
+  return <div className="px-6 py-6">
+    <PageHeader title="Phiếu nhập kho" action={<Button variant="secondary" onClick={() => window.print()}>In phiếu</Button>}/>
+    <Card className="overflow-hidden print-form">
+      <CardHeader title={`PHIẾU NHẬP KHO · ${sourceBatch.receiptLotCode ?? sourceBatch.id}`} subtitle={`${supplier?.name ?? 'Nhà cung cấp'} · ${sourceBatch.receivedAt ? formatDateTime(sourceBatch.receivedAt) : formatDateTime(transaction.at)}`}/>
+      <div className="grid gap-3 border-b border-slate-100 p-4 sm:grid-cols-3 text-sm">
+        <div><p className="text-xs text-slate-500">Nhà cung cấp</p><p className="mt-1 font-semibold">{supplier?.name ?? '—'}</p></div>
+        <div><p className="text-xs text-slate-500">Ngày nhập</p><p className="mt-1 font-semibold">{formatDateTime(sourceBatch.receivedAt ?? transaction.at)}</p></div>
+        <div><p className="text-xs text-slate-500">Người lập phiếu</p><p className="mt-1 font-semibold">{transaction.user}</p></div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[900px] text-sm">
+          <thead className="bg-slate-50 text-left text-xs text-slate-500"><tr><th className="px-4 py-3">Nguyên liệu</th><th className="px-4 py-3">Số lượng</th><th className="px-4 py-3 text-right">Đơn giá</th><th className="px-4 py-3 text-right">Thành tiền</th><th className="px-4 py-3">Mã lô</th><th className="px-4 py-3">Hạn dùng</th></tr></thead>
+          <tbody className="divide-y divide-slate-100">{rows.map(({ batch, tx }) => {
+            const ingredient = ingredientOf(batch.ingredientId);
+            return <tr key={tx.id}><td className="px-4 py-3 font-medium">{ingredient.name} <span className="text-xs text-slate-500">({ingredient.code ?? ingredient.id})</span></td><td className="px-4 py-3">{tx.qty} {tx.unit}</td><td className="px-4 py-3 text-right">{formatVnd(batch.unitCost)}</td><td className="px-4 py-3 text-right font-semibold">{formatVnd(tx.value)}</td><td className="px-4 py-3 font-mono text-xs">{batch.id}</td><td className="px-4 py-3">{formatDateTime(batch.expiryDate)}</td></tr>;
+          })}</tbody>
+          <tfoot><tr className="border-t border-slate-200"><td colSpan={3} className="px-4 py-3 text-right font-semibold">Tổng tiền</td><td className="px-4 py-3 text-right font-bold">{formatVnd(total)}</td><td colSpan={2}/></tr></tfoot>
+        </table>
+      </div>
+    </Card>
+  </div>;
 }
 
 export function Receive() {
@@ -54,7 +128,7 @@ export function Receive() {
   };
 
   return <div className="px-6 py-6">
-    <PageHeader title="Nhập kho" subtitle="Lập phiếu theo đề nghị đã duyệt hoặc nhập trực tiếp không cần phiếu đề nghị." action={<div className="flex gap-2"><Button variant="secondary" onClick={()=>setManualMode(true)}>Lập phiếu thủ công</Button><Button variant="secondary" onClick={()=>window.print()}>In phiếu nhập</Button><Link to="/batches"><Button variant="secondary">Xem các lô hàng</Button></Link></div>} />
+    <PageHeader title="Nhập hàng" action={<div className="flex gap-2"><Button variant="secondary" onClick={()=>setManualMode(true)}>Lập phiếu thủ công</Button><Button variant="secondary" onClick={()=>window.print()}>In phiếu nhập</Button><Link to="/batches"><Button variant="secondary">Xem các lô hàng</Button></Link></div>} />
     {success&&<div role="status" className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{success}</div>}
     <Card className="mb-5 overflow-hidden"><CardHeader title="Đề nghị đã được kế toán duyệt" subtitle="Chọn đề nghị để lập phiếu nhập; mỗi đề nghị chỉ được nhập kho một lần." />
       {!eligible.length?<div className="p-8 text-center text-sm text-slate-500">Chưa có đề nghị nào được kế toán duyệt. Khi kế toán hoàn tất duyệt ngân sách, đề nghị sẽ xuất hiện tại đây.</div>:<div className="overflow-x-auto"><table className="w-full min-w-[650px] text-sm"><thead><tr className="border-b text-left text-xs text-slate-500"><th className="p-3">Mã đề nghị</th><th>Người lập</th><th>Ngày gửi</th><th>Số mặt hàng</th><th>Tổng đề nghị</th><th>Trạng thái</th><th /></tr></thead><tbody>{eligible.map(item=><tr key={item.id} className="border-b"><td className="p-3 font-semibold">{item.id}</td><td>{item.requester}</td><td>{formatDateTime(item.requestedAt)}</td><td>{item.lines.length}</td><td>{formatVnd(item.lines.reduce((sum,line)=>sum+line.quantity*line.unitCost,0))}</td><td><Badge tone="green" dot>Đã duyệt, chờ nhập kho</Badge></td><td><Button size="sm" variant={requestId===item.id?'primary':'secondary'} onClick={()=>selectRequest(item.id)}>{requestId===item.id?'Đang chọn':'Lập phiếu nhập'}</Button></td></tr>)}</tbody></table></div>}
@@ -88,11 +162,11 @@ function ManualReceipt({onBack}:{onBack:()=>void}){
   const scanToAdd=(raw=scanCode)=>{if(submitted)return;const code=raw.trim().toLowerCase();const item=ingredients.find(ingredient=>[ingredient.code,ingredient.id,ingredient.name].some(value=>value?.toLowerCase()===code));if(!item){setNewProduct({...newProduct,code:raw.trim()});setShowNewProduct(true);setScanMessage('Mã mới chưa có trong danh mục. Điền thông tin sản phẩm rồi lưu để thêm vào phiếu.');return;}setLines(current=>[...current,{ingredientId:item.id,quantity:'1',unitCost:String(item.refCost),expiryDate:localDate(new Date(Date.now()+3*86_400_000)),barcode:raw.trim()}]);setScanMessage(`Đã thêm ${item.name} vào phiếu.`);setScanCode('');};
   const saveNewProduct=()=>{const code=newProduct.code.trim()||`SP-${Date.now()}`;const ingredient={...newProduct,id:`ING-${code}`,code};const result=saveIngredient(ingredient);if(result){setError(result);return;}setLines(current=>[...current,{ingredientId:ingredient.id,quantity:'1',unitCost:String(ingredient.refCost),expiryDate:localDate(new Date(Date.now()+3*86_400_000)),barcode:code}]);setNewProduct({code:'',name:'',unit:'kg',group:'Đồ khô',minStock:0,refCost:0});setShowNewProduct(false);setScanCode('');setError('');setScanMessage(`Đã lưu ${ingredient.name} vào danh mục và thêm vào phiếu nhập.`);};
   const submit=()=>{if(submitted)return;const result=receiveManual(supplierId,receivedAt,receiptLotCode,lines.map(line=>({ingredientId:line.ingredientId,quantity:Number(line.quantity),unitCost:Number(line.unitCost),expiryDate:line.expiryDate,barcode:line.barcode})));if(result){setError(result);return;}setError('');setSuccess(`Đã ghi nhận phiếu ${receiptId} và cập nhật tồn kho.`);setSubmitted(true);};
-  return <div className="mx-auto max-w-7xl px-5 py-6"><PageHeader title="Lập phiếu nhập kho thủ công" subtitle="Nhập hàng trực tiếp, không cần tạo hoặc chọn phiếu đề nghị." action={<div className="flex gap-2"><Button variant="secondary" onClick={()=>window.print()}>In phiếu nhập</Button><Button variant="secondary" onClick={onBack}>Quay lại đề nghị</Button></div>} />
+  return <div className="px-6 py-6"><PageHeader title="Lập phiếu nhập kho thủ công" action={<div className="flex gap-2"><Button variant="secondary" onClick={()=>window.print()}>In phiếu nhập</Button><Button variant="secondary" onClick={onBack}>Quay lại đề nghị</Button></div>} />
     {success&&<p role="status" className="mb-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">{success}</p>}
     <Card className="p-5 print-form"><div className="mb-4 text-center"><h2 className="text-xl font-bold">PHIẾU NHẬP KHO</h2><p className="mt-1 text-right text-sm">Số: {receiptId} · Mã lô: {receiptLotCode} · Ngày nhập: {receivedAt}</p></div><p className="mb-4"><strong>Kính gửi:</strong> Bộ phận kho · <strong>Nhà cung cấp:</strong> <select className="rounded border px-2 py-1 no-print" value={supplierId} disabled={submitted} onChange={event=>setSupplierId(event.target.value)}>{suppliers.map(supplier=><option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select><span className="print-only">{suppliers.find(supplier=>supplier.id===supplierId)?.name}</span></p><p className="mb-4">* Nội dung: Nhập hàng trực tiếp vào kho · * Nhân viên: {userName}</p>
       <div className="mb-4 no-print"><Field label="Ngày nhập thực tế"><input className={inputClass} type="date" value={receivedAt} disabled={submitted} onChange={event=>setReceivedAt(event.target.value)}/></Field><Field label="Quét hoặc nhập mã sản phẩm rồi nhấn Enter"><div className="flex gap-2"><span title="Quét mã vạch" aria-label="Biểu tượng quét mã vạch" className="inline-flex h-10 w-12 shrink-0 items-center justify-center rounded-lg border border-blue-200 bg-white text-blue-700"><BarcodeIcon /></span><input className={inputClass} value={scanCode} disabled={submitted} onChange={event=>setScanCode(event.target.value)} onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();scanToAdd();}}} placeholder="Máy quét mã vạch hoặc nhập mã thủ công"/><Button variant="secondary" onClick={scanToAdd}>Thêm mã</Button><Button variant="secondary" className="gap-2" onClick={()=>setShowScanner(true)}><BarcodeIcon /> Quét bằng camera</Button></div></Field>{scanMessage&&<p className="mt-1 text-xs text-blue-700">{scanMessage}</p>}</div>
-      {showNewProduct&&<Card className="my-4 border border-amber-300 bg-amber-50 p-4 no-print"><h3 className="font-semibold">Mã chưa có trong danh mục · Thêm sản phẩm mới</h3><p className="mb-3 mt-1 text-xs text-slate-600">Lưu sản phẩm vào danh mục kho, rồi thêm ngay vào phiếu nhập hiện tại.</p><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><Field label="Mã sản phẩm / mã vạch"><input className={inputClass} value={newProduct.code} onChange={event=>setNewProduct({...newProduct,code:event.target.value})}/></Field><Field label="Tên sản phẩm"><input className={inputClass} autoFocus value={newProduct.name} onChange={event=>setNewProduct({...newProduct,name:event.target.value})} placeholder="Nhập tên hàng mới"/></Field><Field label="Đơn vị tính"><select className={inputClass} value={newProduct.unit} onChange={event=>setNewProduct({...newProduct,unit:event.target.value as Unit})}>{(['kg','g','lít','ml','lon','quả','chai','gói','hộp','thùng'] as Unit[]).map(unit=><option key={unit}>{unit}</option>)}</select></Field><Field label="Nhóm hàng"><select className={inputClass} value={newProduct.group} onChange={event=>setNewProduct({...newProduct,group:event.target.value as IngredientGroup})}>{(['Thịt','Hải sản','Rau củ','Gia vị','Đồ uống','Đồ khô'] as IngredientGroup[]).map(group=><option key={group}>{group}</option>)}</select></Field><Field label="Tồn tối thiểu"><input className={inputClass} type="number" min="0" value={newProduct.minStock} onChange={event=>setNewProduct({...newProduct,minStock:Number(event.target.value)})}/></Field><Field label="Đơn giá"><input className={inputClass} type="number" min="0" value={newProduct.refCost} onChange={event=>setNewProduct({...newProduct,refCost:Number(event.target.value)})}/></Field></div><div className="mt-3 flex gap-2"><Button onClick={saveNewProduct}>Lưu và thêm vào phiếu</Button><Button variant="secondary" onClick={()=>setShowNewProduct(false)}>Hủy</Button></div></Card>}<div className="overflow-x-auto"><table className="request-form-table w-full min-w-[1100px] border-collapse text-sm"><thead><tr><th>STT</th><th>TÊN HÀNG HÓA</th><th>MÃ SẢN PHẨM</th><th>ĐƠN VỊ</th><th>SỐ LƯỢNG</th><th>ĐƠN GIÁ</th><th>THÀNH TIỀN</th><th>MÃ LÔ</th><th>HẠN DÙNG</th><th>MÃ VẠCH</th></tr></thead><tbody>{lines.map((line,index)=>{const item=ingredients.find(ingredient=>ingredient.id===line.ingredientId);return <tr key={index}><td>{index+1}</td><td><select className="w-full bg-transparent no-print" value={line.ingredientId} onChange={event=>{const selected=ingredients.find(ingredient=>ingredient.id===event.target.value);updateLine(index,{ingredientId:event.target.value,unitCost:String(selected?.refCost??0),barcode:selected?.code??''});}}>{ingredients.map(ingredient=><option key={ingredient.id} value={ingredient.id}>{ingredient.name}</option>)}</select><span className="print-only">{item?.name}</span></td><td>{item?.code??item?.id}</td><td>{item?.unit}</td><td><input className="w-full text-right" type="number" min="0.001" step="0.001" value={line.quantity} onChange={event=>updateLine(index,{quantity:event.target.value})}/></td><td><input className="w-full text-right" type="number" min="0" value={line.unitCost} onChange={event=>updateLine(index,{unitCost:event.target.value})}/></td><td className="text-right">{formatVnd(Number(line.quantity)*Number(line.unitCost))}</td><td className="font-mono text-xs">{receiptLotCode}</td><td><input type="date" className={inputClass} value={line.expiryDate} onChange={event=>updateLine(index,{expiryDate:event.target.value})}/></td><td><input className={inputClass} placeholder="Mã vạch / nhập mã" value={line.barcode} onChange={event=>updateLine(index,{barcode:event.target.value})}/></td></tr>;})}</tbody><tfoot><tr><td colSpan={6}><strong>Tổng</strong></td><td className="text-right"><strong>{formatVnd(lines.reduce((sum,line)=>sum+Number(line.quantity)*Number(line.unitCost),0))}</strong></td><td colSpan={3}/></tr></tfoot></table></div>
+      {showNewProduct&&<Card className="my-4 border border-amber-300 bg-amber-50 p-4 no-print"><h3 className="font-semibold">Mã chưa có trong danh mục · Thêm sản phẩm mới</h3><p className="mb-3 mt-1 text-xs text-slate-600">Lưu sản phẩm vào danh mục kho, rồi thêm ngay vào phiếu nhập hiện tại.</p><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><Field label="Mã sản phẩm / mã vạch"><input className={inputClass} value={newProduct.code} onChange={event=>setNewProduct({...newProduct,code:event.target.value})}/></Field><Field label="Tên sản phẩm"><input className={inputClass} autoFocus value={newProduct.name} onChange={event=>setNewProduct({...newProduct,name:event.target.value})} placeholder="Nhập tên hàng mới"/></Field><Field label="Đơn vị tính"><select className={inputClass} value={newProduct.unit} onChange={event=>setNewProduct({...newProduct,unit:event.target.value as Unit})}>{(['kg','g','lít','ml','lon','quả','chai','gói','hộp','thùng'] as Unit[]).map(unit=><option key={unit}>{unit}</option>)}</select></Field><Field label="Nhóm hàng"><select className={inputClass} value={newProduct.group} onChange={event=>setNewProduct({...newProduct,group:event.target.value as IngredientGroup})}>{(['Thịt','Hải sản','Rau củ','Gia vị','Đồ uống','Đồ khô'] as IngredientGroup[]).map(group=><option key={group}>{group}</option>)}</select></Field><Field label="Tồn tối thiểu"><input className={inputClass} type="number" min="0" value={newProduct.minStock} onChange={event=>setNewProduct({...newProduct,minStock:Number(event.target.value)})}/></Field><Field label="Đơn giá"><input className={inputClass} type="number" min="0" value={newProduct.refCost} onChange={event=>setNewProduct({...newProduct,refCost:Number(event.target.value)})}/></Field></div><div className="mt-3 flex gap-2">      <Button onClick={saveNewProduct}>Lưu</Button><Button variant="secondary" onClick={()=>setShowNewProduct(false)}>Hủy</Button></div></Card>}<div className="overflow-x-auto"><table className="request-form-table w-full min-w-[1100px] border-collapse text-sm"><thead><tr><th>STT</th><th>TÊN HÀNG HÓA</th><th>MÃ SẢN PHẨM</th><th>ĐƠN VỊ</th><th>SỐ LƯỢNG</th><th>ĐƠN GIÁ</th><th>THÀNH TIỀN</th><th>MÃ LÔ</th><th>HẠN DÙNG</th><th>MÃ VẠCH</th></tr></thead><tbody>{lines.map((line,index)=>{const item=ingredients.find(ingredient=>ingredient.id===line.ingredientId);return <tr key={index}><td>{index+1}</td><td><select className="w-full bg-transparent no-print" value={line.ingredientId} onChange={event=>{const selected=ingredients.find(ingredient=>ingredient.id===event.target.value);updateLine(index,{ingredientId:event.target.value,unitCost:String(selected?.refCost??0),barcode:selected?.code??''});}}>{ingredients.map(ingredient=><option key={ingredient.id} value={ingredient.id}>{ingredient.name}</option>)}</select><span className="print-only">{item?.name}</span></td><td>{item?.code??item?.id}</td><td>{item?.unit}</td><td><input className="w-full text-right" type="number" min="0.001" step="0.001" value={line.quantity} onChange={event=>updateLine(index,{quantity:event.target.value})}/></td><td><input className="w-full text-right" type="number" min="0" value={line.unitCost} onChange={event=>updateLine(index,{unitCost:event.target.value})}/></td><td className="text-right">{formatVnd(Number(line.quantity)*Number(line.unitCost))}</td><td className="font-mono text-xs">{receiptLotCode}</td><td><input type="date" className={inputClass} value={line.expiryDate} onChange={event=>updateLine(index,{expiryDate:event.target.value})}/></td><td><input className={inputClass} placeholder="Mã vạch / nhập mã" value={line.barcode} onChange={event=>updateLine(index,{barcode:event.target.value})}/></td></tr>;})}</tbody><tfoot><tr><td colSpan={6}><strong>Tổng</strong></td><td className="text-right"><strong>{formatVnd(lines.reduce((sum,line)=>sum+Number(line.quantity)*Number(line.unitCost),0))}</strong></td><td colSpan={3}/></tr></tfoot></table></div>
       <div className="mt-3 flex justify-between no-print"><Button variant="secondary" disabled={submitted} onClick={addLine}>Thêm dòng hàng</Button><span className="self-center text-xs text-slate-500">Mã lô tự sinh khi xác nhận nhập kho.</span></div>{error&&<p role="alert" className="mt-3 text-sm text-red-600 no-print">{error}</p>}
       <div className="mt-4 flex justify-end no-print"><Button disabled={submitted} onClick={submit}>Xác nhận nhập kho</Button></div><p className="mt-4 text-sm">Ghi chú: Nhập trực tiếp, không có phiếu đề nghị.</p><div className="mt-8 grid grid-cols-2 text-center text-sm"><div>Người giao hàng<div className="h-16"/>(Ký, họ tên)</div><div>Người nhận hàng<div className="h-16"/>(Ký, họ tên)</div></div></Card>
   {showScanner&&<BarcodeScanner onClose={()=>setShowScanner(false)} onDetected={code=>{scanToAdd(code);setShowScanner(false);}} />}</div>;

@@ -46,8 +46,7 @@ export function History() {
   return (
     <div className="px-6 py-6">
       <PageHeader
-        title="Lịch sử nhập – xuất – hủy"
-        subtitle="Toàn bộ giao dịch kho, truy xuất theo lô và người thực hiện" />
+        title="Lịch sử kho" />
       
 
       <Card>
@@ -72,7 +71,7 @@ export function History() {
             onClick={() => setType(t)}
             className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-150 ease-out ${
             type === t ?
-            'bg-slate-900 text-white' :
+            'bg-brand-600 text-white' :
             'bg-slate-100 text-slate-600 hover:bg-slate-200'}`
             }>
             

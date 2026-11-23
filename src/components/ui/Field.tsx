@@ -10,7 +10,7 @@ export function Field({
 
 
 
-}: {label: string;hint?: string;children: React.ReactNode;className?: string;}) {
+}: {label: React.ReactNode;hint?: string;children: React.ReactNode;className?: string;}) {
   return (
     <label className={`block ${className}`}>
       <span className="mb-1.5 block text-xs font-medium text-slate-600">

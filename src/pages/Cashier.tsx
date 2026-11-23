@@ -53,8 +53,6 @@ export function Cashier() {
 
   const [selectedId, setSelectedId] = useState<string | null>(open[0]?.id ?? null);
   const [discountRate, setDiscountRate] = useState(0);
-  const [allowDebt, setAllowDebt] = useState(false);
-  const [paidNow, setPaidNow] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail,setCustomerEmail]=useState('');
@@ -85,8 +83,6 @@ export function Cashier() {
     setDiscountRate(0);
     setCash('');
     setMethod('Tiền mặt');
-    setAllowDebt(false);
-    setPaidNow('');
     setCustomerName('');
     setCustomerPhone('');
     setCustomerEmail('');
@@ -109,10 +105,7 @@ export function Cashier() {
   const waiting = lines.filter((l) => billableQty(l) > 0 && l.status !== 'READY');
   const ready = selected ? isReadyToPay(selected) : false;
   const cashNum = Number(cash) || 0;
-  const amountToCollect = allowDebt ? (paidNow.trim() === '' ? 0 : Number(paidNow)) : totals.total;
-  const amountValid = Number.isFinite(amountToCollect) && amountToCollect >= 0 && amountToCollect <= totals.total;
-  const debtCustomerValid = amountToCollect >= totals.total || customerName.trim().length > 0;
-  const cashOk = method !== 'Tiền mặt' || amountToCollect === 0 || cashNum >= amountToCollect;
+  const cashOk = method !== 'Tiền mặt' || cashNum >= totals.total;
   const quick = [totals.total, Math.ceil(totals.total / 100_000) * 100_000, Math.ceil(totals.total / 500_000) * 500_000].
   filter((v, i, a) => a.indexOf(v) === i);
 
@@ -123,7 +116,6 @@ export function Cashier() {
       discountRate,
       method,
       cashReceived: method === 'Tiền mặt' ? cashNum : undefined,
-      amountPaid: amountToCollect,
       customerName,
       customerPhone
     });
@@ -152,29 +144,24 @@ export function Cashier() {
       {!activeShift && screen !== 'shift' ? <div className="m-auto w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-card"><h2 className="text-xl font-bold">Chưa mở ca thu ngân</h2><p className="mt-1 text-sm text-slate-500">Mở ca tại chức năng Chốt ca trước khi thanh toán.</p><Link to="/cashier?screen=shift"><Button className="mt-4">Đi đến Chốt ca</Button></Link></div> : <>
       {screen === 'shift' ? <section className="m-auto w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
         <h1 className="text-xl font-bold">Chốt ca thu ngân</h1>
-        {!activeShift ? anotherOpenShift ? <p className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Thu ngân {anotherOpenShift.cashier} đang mở ca {anotherOpenShift.id}. Chốt ca đó trước khi mở ca mới.</p> : <><p className="mt-1 text-sm text-slate-500">Nhập tiền mặt đầu ca để bắt đầu ca làm việc.</p><div className="mt-5 space-y-3"><Field label="Tiền mặt đầu ca"><input className={inputClass} type="number" min="0" value={openingCash} onChange={e=>setOpeningCash(e.target.value)}/></Field><Field label="Ghi chú"><textarea className={inputClass} value={openingNote} onChange={e=>setOpeningNote(e.target.value)}/></Field>{shiftError&&<p className="text-sm text-red-600">{shiftError}</p>}<Button onClick={startShift}>Xác nhận mở ca</Button></div></> : <><p className="mt-1 text-sm text-slate-500">Ca {activeShift.id} · Mở lúc {new Date(activeShift.openedAt).toLocaleString('vi-VN')}</p><div className="mt-5 space-y-3 text-sm"><p>Thu ngân: <strong>{user?.name}</strong></p><p>Tiền mặt đầu ca: <strong>{formatVnd(activeShift.openingCash)}</strong></p><p>Doanh thu tiền mặt: <strong>{formatVnd(shiftCash)}</strong></p><p>Chuyển khoản: <strong>{formatVnd(shiftTransfer)}</strong> · Phương thức khác: <strong>{formatVnd(shiftCard)}</strong></p><p>Tiền mặt dự kiến cuối ca: <strong>{formatVnd(expectedCash)}</strong></p><Field label="Tiền mặt thực tế kiểm đếm trong két"><input className={inputClass} type="number" min="0" value={actualCash} onChange={e=>setActualCash(e.target.value)}/></Field><p>Chênh lệch: <strong>{formatVnd((Number(actualCash)||0)-expectedCash)}</strong></p><Field label="Lý do chênh lệch (bắt buộc nếu khác 0)"><textarea className={inputClass} value={varianceReason} onChange={e=>setVarianceReason(e.target.value)}/></Field>{shiftError&&<p role="alert" className="text-red-600">{shiftError}</p>}<Button variant="warning" onClick={closeShift}>Xác nhận chốt ca và gửi báo cáo</Button></div></>}
+        {!activeShift ? anotherOpenShift ? <p className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Thu ngân {anotherOpenShift.cashier} đang mở ca {anotherOpenShift.id}. Chốt ca đó trước khi mở ca mới.</p> : <><p className="mt-1 text-sm text-slate-500">Nhập tiền mặt đầu ca để bắt đầu ca làm việc.</p><div className="mt-5 space-y-3"><Field label="Tiền mặt đầu ca"><input className={inputClass} type="number" min="0" value={openingCash} onChange={e=>setOpeningCash(e.target.value)}/></Field><Field label="Ghi chú"><textarea className={inputClass} value={openingNote} onChange={e=>setOpeningNote(e.target.value)}/></Field>{shiftError&&<p className="text-sm text-red-600">{shiftError}</p>}<Button onClick={startShift}>Xác nhận mở ca</Button></div></> : <><p className="mt-1 text-sm text-slate-500">Ca {activeShift.id} · Mở lúc {new Date(activeShift.openedAt).toLocaleString('vi-VN')}</p>        <div className="mt-5 space-y-3 text-sm"><p>Thu ngân: <strong>{user?.name}</strong></p><p>Tiền mặt đầu ca: <strong>{formatVnd(activeShift.openingCash)}</strong></p><p>Tiền mặt: <strong>{formatVnd(shiftCash)}</strong></p><p>Chuyển khoản: <strong>{formatVnd(shiftTransfer)}</strong> · Phương thức khác: <strong>{formatVnd(shiftCard)}</strong></p><p>Tiền mặt dự kiến cuối ca: <strong>{formatVnd(expectedCash)}</strong></p><Field label="Tiền mặt thực tế kiểm đếm trong két"><input className={inputClass} type="number" min="0" value={actualCash} onChange={e=>setActualCash(e.target.value)}/></Field><p>Chênh lệch: <strong>{formatVnd((Number(actualCash)||0)-expectedCash)}</strong></p><Field label="Lý do chênh lệch (bắt buộc nếu khác 0)"><textarea className={inputClass} value={varianceReason} onChange={e=>setVarianceReason(e.target.value)}/></Field>{shiftError&&<p role="alert" className="text-red-600">{shiftError}</p>}<Button variant="warning" onClick={closeShift}>Xác nhận chốt ca và gửi báo cáo</Button></div></>}
       </section> : <>
       <div className="flex flex-wrap items-center gap-4 border-b border-slate-200 bg-white px-4 py-4 sm:px-6 lg:gap-6">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-slate-900">Sơ đồ bàn</h1>
-          <p className="text-xs text-slate-500">{tables.filter((table) => open.some((order) => order.tableId === table.id)).length}/{tables.length} bàn đang có khách · Chọn bàn để xem order và xác nhận thanh toán</p>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">Sơ đồ bàn</h1>
+          <p className="text-sm font-semibold text-slate-600">{tables.filter((table) => open.some((order) => order.tableId === table.id)).length}/{tables.length} bàn có khách</p>
         </div>
         <div className="ml-auto flex w-full flex-wrap items-center justify-between gap-3 sm:w-auto sm:justify-start">
           <dl className="flex w-full justify-between gap-3 text-sm sm:w-auto sm:gap-6 lg:gap-8">
           <div>
-            <dt className="text-xs text-slate-500">Tiền đã thu trong ca · {user?.name}</dt>
+            <dt className="text-xs font-semibold text-slate-600">Tiền đã thu trong ca</dt>
             <dd className="tabular font-semibold text-slate-900">{formatVnd(shiftRevenue)}</dd>
           </div>
           <div>
-            <dt className="text-xs text-slate-500">Bill đã xác nhận</dt>
+            <dt className="text-xs font-semibold text-slate-600">Bill đã xác nhận</dt>
             <dd className="tabular font-semibold text-slate-900">{cashierSales.length}</dd>
           </div>
-          <div>
-            <dt className="text-xs text-slate-500">Bàn đang mở</dt>
-            <dd className="tabular font-semibold text-slate-900">{open.length}</dd>
-          </div>
           </dl>
-          <div className="w-full text-xs text-slate-500">Ca {activeShift?.id} · Đầu ca {formatVnd(activeShift?.openingCash ?? 0)} · Tiền mặt {formatVnd(shiftCash)} · Chuyển khoản {formatVnd(shiftTransfer)} · Thẻ {formatVnd(shiftCard)} · Dự kiến trong két {formatVnd(expectedCash)}</div>
         </div>
         <Link to="/invoices">
           <Button variant="secondary">
@@ -238,8 +225,9 @@ export function Cashier() {
             <section className="flex min-w-0 flex-1 flex-col">
               <div className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
                 <div>
-                  <h2 className="text-base font-semibold text-slate-900">{tableOf(selected.tableId)?.name}</h2>
-                  <p className="text-xs text-slate-500">{selected.id} · Phục vụ: {selected.createdBy}</p>
+                  <h2 className="text-3xl font-extrabold tracking-tight text-[#172b4d] sm:text-4xl">Hóa đơn</h2>
+                  <p className="mt-1 text-sm font-semibold text-slate-800">{tableOf(selected.tableId)?.name} · {selected.id}</p>
+                  <p className="text-xs text-slate-500">Phục vụ: {selected.createdBy}</p>
                 </div>
                 <Button
                 variant="secondary"
@@ -326,35 +314,18 @@ export function Cashier() {
                 <section className="rounded-lg border border-slate-200 p-3">
                   <h3 className="mb-2 text-sm font-semibold text-slate-800">Thông tin khách hàng (không bắt buộc)</h3>
                   <label className="block text-xs font-medium text-slate-600">Số điện thoại<input className={inputClass+' mt-1'} value={customerPhone} onChange={event=>changeCustomerPhone(event.target.value)} placeholder="Nhập số điện thoại để tra cứu" /></label>
-                  {matchedCustomer?<div className="mt-2 rounded-md bg-emerald-50 p-2 text-xs text-emerald-800"><strong>Đã tìm thấy khách hàng: {matchedCustomer.name}</strong>{matchedCustomer.email&&<p>{matchedCustomer.email}</p>}{matchedCustomer.address&&<p>{matchedCustomer.address}</p>}</div>:customerPhone.trim()&&<div className="mt-2 grid gap-2"><p className="text-xs text-amber-700">Chưa có hồ sơ theo số điện thoại này. Nhập thông tin để tạo khách hàng mới.</p><label className="text-xs font-medium text-slate-600">Tên khách hàng *<input className={inputClass+' mt-1'} value={customerName} onChange={event=>setCustomerName(event.target.value)} placeholder="Họ và tên"/></label><label className="text-xs font-medium text-slate-600">Email<input className={inputClass+' mt-1'} type="email" value={customerEmail} onChange={event=>setCustomerEmail(event.target.value)} placeholder="Không bắt buộc"/></label><label className="text-xs font-medium text-slate-600">Địa chỉ<input className={inputClass+' mt-1'} value={customerAddress} onChange={event=>setCustomerAddress(event.target.value)} placeholder="Không bắt buộc"/></label><Button size="sm" variant="secondary" onClick={registerCustomer}>Lưu hồ sơ khách hàng</Button></div>}
+                  {matchedCustomer?<div className="mt-2 rounded-md bg-emerald-50 p-2 text-xs text-emerald-800"><strong>Đã tìm thấy khách hàng: {matchedCustomer.name}</strong>{matchedCustomer.email&&<p>{matchedCustomer.email}</p>}{matchedCustomer.address&&<p>{matchedCustomer.address}</p>}</div>:customerPhone.trim()&&<div className="mt-2 grid gap-2"><p className="text-xs text-amber-700">Chưa có hồ sơ theo số điện thoại này. Nhập thông tin để tạo khách hàng mới.</p><label className="text-xs font-medium text-slate-600">Tên khách hàng *<input className={inputClass+' mt-1'} value={customerName} onChange={event=>setCustomerName(event.target.value)} placeholder="Họ và tên"/></label><label className="text-xs font-medium text-slate-600">Email<input className={inputClass+' mt-1'} type="email" value={customerEmail} onChange={event=>setCustomerEmail(event.target.value)} placeholder="Không bắt buộc"/></label><label className="text-xs font-medium text-slate-600">Địa chỉ<input className={inputClass+' mt-1'} value={customerAddress} onChange={event=>setCustomerAddress(event.target.value)} placeholder="Không bắt buộc"/></label>                  <Button size="sm" variant="secondary" onClick={registerCustomer}>Lưu</Button></div>}
                   {customerMessage&&<p role="status" className="mt-2 text-xs text-slate-600">{customerMessage}</p>}
                 </section>
-                {allowDebt&&amountToCollect<totals.total&&!customerPhone.trim()&&<label className="block text-xs font-medium text-slate-600">Tên khách hàng ghi nợ *<input className={inputClass+' mt-1'} value={customerName} onChange={event=>setCustomerName(event.target.value)} placeholder="Nhập tên khách hàng"/></label>}
-
-                <label className="mt-4 flex cursor-pointer items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
-                  <input type="checkbox" checked={allowDebt} onChange={(event) => { setAllowDebt(event.target.checked); setPaidNow(event.target.checked ? String(totals.total) : ''); }} className="mt-0.5 accent-amber-600" />
-                  <span><strong className="block text-amber-900">Ghi nợ / thanh toán một phần</strong><span className="mt-0.5 block text-xs leading-5 text-amber-800">Bill vẫn được xác nhận; số còn thiếu sẽ tự tạo công nợ gắn với mã hóa đơn.</span></span>
-                </label>
-
-                {allowDebt && <div className="mt-3 rounded-lg border border-slate-200 p-3">
-                  <label className="mb-1.5 block text-xs font-medium text-slate-600" htmlFor="paid-now">Số tiền thu ngay</label>
-                  <input id="paid-now" type="number" min="0" max={totals.total} step="1000" value={paidNow} onChange={(event) => setPaidNow(event.target.value)} className={inputClass + ' text-right font-semibold'} />
-                  {!amountValid && <p className="mt-1 text-xs text-red-600">Số tiền thu không được vượt tổng bill.</p>}
-                  {amountValid && <p className="mt-1 flex justify-between text-xs text-amber-800"><span>Ghi công nợ</span><strong>{formatVnd(totals.total - amountToCollect)}</strong></p>}
-                  {amountToCollect < totals.total && <p className="mt-3 text-xs text-slate-600">Công nợ sẽ gắn với hồ sơ khách hàng và số điện thoại đã nhập ở trên.</p>}
-                </div>}
-
                 <div>
                   <p className="mb-2 text-xs font-medium text-slate-600">Phương thức thanh toán</p>
                   <div className="grid grid-cols-3 gap-2">
                     {METHODS.map((mt) =>
                   <button
                     key={mt.id}
-                    disabled={allowDebt && mt.id === 'Thẻ'}
-                    title={allowDebt && mt.id === 'Thẻ' ? 'Ghi nợ hiện chỉ hỗ trợ tiền mặt hoặc chuyển khoản' : undefined}
                     onClick={() => setMethod(mt.id)}
                     className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-2.5 text-xs font-medium transition-colors duration-150 ease-out ${
-                    allowDebt && mt.id === 'Thẻ' ? 'cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300' : method === mt.id ?
+                    method === mt.id ?
                     'border-brand-600 bg-brand-50 text-brand-700' :
                     'border-slate-200 text-slate-600 hover:bg-slate-50'}`
                     }>
@@ -393,7 +364,7 @@ export function Cashier() {
                     {cashNum > 0 &&
                 <p className={`tabular mt-2 flex justify-between text-sm ${cashOk ? 'text-emerald-700' : 'text-red-600'}`}>
                         <span>{cashOk ? 'Tiền thối' : 'Còn thiếu'}</span>
-                        <span className="font-semibold">{formatVnd(Math.abs(cashNum - amountToCollect))}</span>
+                        <span className="font-semibold">{formatVnd(Math.abs(cashNum - totals.total))}</span>
                       </p>
                 }
                   </div>
@@ -403,7 +374,7 @@ export function Cashier() {
               <div className="rounded-lg bg-slate-50 p-4 text-center text-xs text-slate-600">
                     <QrCodeIcon className="mx-auto h-16 w-16 text-slate-800" />
                     <p className="mt-2">VietQR · Sen Vàng · 0071 000 668 899</p>
-                    <p className="tabular font-semibold text-slate-900">Thu ngay: {formatVnd(amountToCollect)}</p>
+                    <p className="tabular font-semibold text-slate-900">Cần thanh toán: {formatVnd(totals.total)}</p>
                   </div>
               }
               </div>
@@ -417,11 +388,11 @@ export function Cashier() {
                 <Button
                 size="lg"
                 className="w-full"
-                disabled={!ready || !cashOk || !amountValid || !debtCustomerValid}
+                disabled={!ready || !cashOk}
                 onClick={pay}>
                 
                   <CheckCircle2Icon className="h-5 w-5" />
-                  {allowDebt && totals.total - amountToCollect > 0 ? 'Xác nhận bill & ghi công nợ' : 'Xác nhận thanh toán'}
+                  Xác nhận thanh toán
                 </Button>
               </div>
             </aside>

@@ -23,27 +23,35 @@ function iso(offsetDays: number, hour = 8, minute = 0): string {
 export const suppliers: Supplier[] = [
 {
   id: 'SUP-01',
+  code: 'SUP-01',
   name: 'Thực phẩm Tân Bình',
   phone: '0903 112 445',
-  address: '12 Cộng Hòa, Q. Tân Bình, TP.HCM'
+  address: '12 Cộng Hòa, Q. Tân Bình, TP.HCM',
+  isActive: true
 },
 {
   id: 'SUP-02',
+  code: 'SUP-02',
   name: 'Hải sản Cần Giờ',
   phone: '0987 220 118',
-  address: 'Cảng Cần Giờ, TP.HCM'
+  address: 'Cảng Cần Giờ, TP.HCM',
+  isActive: true
 },
 {
   id: 'SUP-03',
+  code: 'SUP-03',
   name: 'Rau sạch Đà Lạt',
   phone: '0911 556 007',
-  address: '45 Nguyên Tử Lực, Đà Lạt'
+  address: '45 Nguyên Tử Lực, Đà Lạt',
+  isActive: true
 },
 {
   id: 'SUP-04',
+  code: 'SUP-04',
   name: 'Gia vị Minh Phát',
   phone: '0938 771 900',
-  address: '210 Lý Thường Kiệt, Q.10, TP.HCM'
+  address: '210 Lý Thường Kiệt, Q.10, TP.HCM',
+  isActive: true
 }];
 
 

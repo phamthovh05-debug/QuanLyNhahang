@@ -22,15 +22,22 @@ export interface Ingredient {
 
 export interface Supplier {
   id: string;
+  code: string;
   name: string;
   phone: string;
-  address: string;
+  taxCode?: string;
+  email?: string;
+  address?: string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Customer {
   id: string;
   name: string;
   phone: string;
+  customerType?: 'VIP' | 'Thường';
   email?: string;
   address?: string;
   createdAt: string;
@@ -86,6 +93,10 @@ export interface Dish {
   stockIngredientId?: string;
   special?: boolean;
   specialReason?: string;
+  specialCampaignId?: string;
+  specialPrice?: number;
+  specialQuantity?: number;
+  specialRemaining?: number;
 }
 
 export interface Area {
@@ -131,6 +142,7 @@ export interface OrderLine {
   price: number;
   qty: number;
   note?: string;
+  specialCampaignId?: string;
   status: LineStatus;
   sentAt?: string;
   startedAt?: string;
@@ -213,7 +225,30 @@ export interface DailyStat {
   cost: number;
 }
 
-export type ReportKind = 'REVENUE' | 'STOCK_BALANCE';
+export type ReportKind = 'REVENUE' | 'STOCK_BALANCE' | 'FINANCIAL';
+
+export interface FinancialReportRevenueLine {
+  id: string;
+  date: string;
+  subtotal: number;
+  discount: number;
+  netRevenue: number;
+  status: string;
+}
+
+export interface FinancialReportExpenseLine {
+  id: string;
+  date: string;
+  description: string;
+  group: string;
+  amount: number;
+  status: string;
+}
+
+export interface FinancialReportDetails {
+  revenueRows: FinancialReportRevenueLine[];
+  expenseRows: FinancialReportExpenseLine[];
+}
 
 export interface ReportRecord {
   id: string;
@@ -226,6 +261,7 @@ export interface ReportRecord {
   recipient: 'Quản lý';
   metrics: Record<string, number>;
   stockLines?: ReportStockLine[];
+  financialDetails?: FinancialReportDetails;
 }
 
 export interface ReportStockLine {
@@ -265,7 +301,7 @@ export interface PurchaseRequest {
 export interface StocktakeRecord {
   id: string; createdAt: string; createdBy: string; department: string;
   lines: { ingredientId: string; bookQty: number; countedQty: number; goodQty?: number; poorQty?: number; lostQty?: number; note?: string }[];
-  note: string; status: 'DRAFT'|'PENDING_MANAGER' | 'REVIEWED'; history: { actor: string; at: string; action: string; note?: string }[];
+  note: string; status: 'DRAFT'|'PENDING_MANAGER'|'REVIEWED'|'REJECTED'; history: { actor: string; at: string; action: string; note?: string }[];
 }
 
 export interface CashierShift {
@@ -293,7 +329,7 @@ export interface PayrollRecord {
   createdBy: string;
   lines: PayrollLine[];
   total: number;
-  status: 'PENDING_ACCOUNTING' | 'ACCOUNTANT_APPROVED' | 'REVISION_REQUESTED';
+  status: 'PENDING_ACCOUNTING' | 'ACCOUNTANT_APPROVED' | 'PENDING_MANAGER' | 'MANAGER_APPROVED' | 'REVISION_REQUESTED';
   accountingNote?: string;
   reviewedAt?: string;
   reviewedBy?: string;
@@ -334,7 +370,7 @@ export interface CashLedger {
 }
 
 export type DebtSide = 'receivable' | 'payable';
-export type DebtSourceType = 'SALES_INVOICE' | 'GOODS_RECEIPT';
+export type DebtSourceType = 'SALES_INVOICE' | 'GOODS_RECEIPT' | 'SUPPLIER_DEPOSIT';
 export interface DebtPayment { id: string; voucherId?: string; date: string; amount: number; method: PaymentMethod; }
 export interface DebtRecord {
   id: string;

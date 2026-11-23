@@ -53,7 +53,7 @@ export function TableFormModal({
             onClose();
           }}>
           
-            Lưu bàn
+            Lưu
           </Button>
         </>
       }>

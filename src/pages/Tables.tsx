@@ -17,12 +17,14 @@ import { useAuth } from '../contexts/AuthContext';
 import { minutesSince, submittedLines } from '../utils/order';
 import type { Area, DiningTable } from '../types';
 
+
 export function Tables() {
   const { areas, tables, orders, deleteTable, deleteArea, showToast } = useApp();
   const { user } = useAuth();
   const navigate = useNavigate();
   const isManager = user?.role === 'Quản lý';
   const isCashier = user?.role === 'Thu ngân';
+
 
   const [areaId, setAreaId] = useState(areas[0]?.id ?? '');
   const [editMode, setEditMode] = useState(false);
@@ -31,13 +33,17 @@ export function Tables() {
   const [confirmTable, setConfirmTable] = useState<DiningTable | null>(null);
   const [confirmArea, setConfirmArea] = useState<Area | null>(null);
 
+
   const currentArea = areas.find((a) => a.id === areaId) ?? areas[0];
   const list = tables.filter((t) => t.areaId === currentArea?.id);
+
 
   const openOrder = (tableId: string) =>
   orders.find((o) => o.tableId === tableId && o.status === 'OPEN');
 
+
   const busyCount = tables.filter((t) => openOrder(t.id)).length;
+
 
   return (
     <div className="px-6 py-6">
@@ -62,14 +68,16 @@ export function Tables() {
               <Button
             variant={editMode ? 'primary' : 'secondary'}
             onClick={() => setEditMode((v) => !v)}>
-            
+           
                 <Settings2Icon className="h-4 w-4" />
                 {editMode ? 'Xong chỉnh sửa' : 'Chỉnh sửa sơ đồ'}
               </Button>
             </div>
 
+
         } />
-      
+     
+
 
       <div className="mb-5 flex flex-wrap items-center gap-2">
         {areas.map((a) => {
@@ -84,12 +92,13 @@ export function Tables() {
               'bg-slate-900 text-white' :
               'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'}`
               }>
-              
+             
               {a.name}
               <span className={`tabular text-xs ${currentArea?.id === a.id ? 'text-slate-300' : 'text-slate-400'}`}>
                 {busy}/{total}
               </span>
             </button>);
+
 
         })}
         {editMode && currentArea &&
@@ -114,6 +123,7 @@ export function Tables() {
         </div>
       </div>
 
+
       <div className="rounded-2xl border border-slate-200 bg-white p-6">
         {list.length === 0 ?
         <div className="py-16 text-center">
@@ -125,6 +135,7 @@ export function Tables() {
               </Button>
           }
           </div> :
+
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
             {list.map((t) => {
@@ -142,7 +153,7 @@ export function Tables() {
                   'border-brand-600 bg-brand-600 text-white hover:bg-brand-700' :
                   'border-dashed border-slate-300 bg-white text-slate-700 hover:border-brand-400 hover:bg-brand-50'}`
                   }>
-                  
+                 
                     <div className="flex items-start justify-between">
                       <span className="text-lg font-semibold">{t.name}</span>
                       <span className={`flex items-center gap-1 text-xs ${busy ? 'text-brand-100' : 'text-slate-400'}`}>
@@ -166,29 +177,31 @@ export function Tables() {
                   onClick={() => setConfirmTable(t)}
                   aria-label={`Xóa ${t.name}`}
                   className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-red-600 shadow-card hover:bg-red-50">
-                  
+                 
                       <Trash2Icon className="h-3.5 w-3.5" />
                     </button>
                 }
                 </div>);
+
 
           })}
           </div>
         }
       </div>
 
+
       <TableFormModal
         open={tableModal.open}
         table={tableModal.table}
         defaultAreaId={currentArea?.id ?? ''}
         onClose={() => setTableModal({ open: false, table: null })} />
-      
+     
       <AreaFormModal
         open={areaModal.open}
         area={areaModal.area}
         onClose={() => setAreaModal({ open: false, area: null })}
         onSaved={(id) => setAreaId(id)} />
-      
+     
       <ConfirmDialog
         open={!!confirmTable}
         title="Xóa bàn"
@@ -200,7 +213,7 @@ export function Tables() {
           const err = deleteTable(confirmTable.id);
           showToast(err ?? `Đã xóa ${confirmTable.name}`);
         }} />
-      
+     
       <ConfirmDialog
         open={!!confirmArea}
         title="Xóa khu vực"
@@ -213,7 +226,11 @@ export function Tables() {
           if (!err) setAreaId(areas.find((a) => a.id !== confirmArea.id)?.id ?? '');
           showToast(err ?? `Đã xóa khu vực ${confirmArea.name}`);
         }} />
-      
+     
     </div>);
 
+
 }
+
+
+

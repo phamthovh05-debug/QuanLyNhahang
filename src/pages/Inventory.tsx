@@ -3,11 +3,14 @@ import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertTriangleIcon,
+  BoxesIcon,
   ChevronRightIcon,
   PackagePlusIcon,
   PencilIcon,
   PlusIcon,
-  SearchIcon } from
+  SearchIcon,
+  TimerIcon,
+  WalletIcon } from
 'lucide-react';
 import { Card, CardHeader, PageHeader } from '../components/ui/Card';
 import { Badge, StateBadge } from '../components/ui/Badge';
@@ -26,6 +29,21 @@ import type { Ingredient, IngredientGroup, Unit } from '../types';
 
 const PRODUCT_GROUPS: IngredientGroup[] = ['Thịt', 'Hải sản', 'Rau củ', 'Gia vị', 'Đồ uống', 'Đồ khô'];
 const PRODUCT_UNITS: Unit[] = ['kg', 'g', 'lít', 'ml', 'lon', 'quả', 'chai', 'gói', 'hộp', 'thùng'];
+
+const nextProductCode = (ingredients: Ingredient[]) => {
+  const usedCodes = new Set(ingredients.flatMap(item => [item.code, item.id]).filter((code): code is string => !!code).map(code => code.toUpperCase()));
+  let sequence = 1;
+  let code = `SP-${String(sequence).padStart(4, '0')}`;
+  while (usedCodes.has(code)) {
+    sequence += 1;
+    code = `SP-${String(sequence).padStart(4, '0')}`;
+  }
+  return code;
+};
+
+function RequiredLabel({ children }: { children: React.ReactNode }) {
+  return <>{children}<span className="ml-1 text-red-600" aria-hidden="true">*</span></>;
+}
 
 export function Inventory() {
   const { ingredients, batches, saveIngredient } = useApp();
@@ -51,38 +69,72 @@ export function Inventory() {
   );
 
   const lowRows = rows.filter((r) => r.low);
+  const inventoryValue = rows.reduce((total, row) => total + row.value, 0);
+  const expiringLots = batches.filter((batch) => batchState(batch) === 'NEAR_EXPIRY').length;
 
   return (
     <div className="px-6 py-6">
       <PageHeader
-        title="Quản lý kho"
-        subtitle="Tồn kho khả dụng theo nguyên liệu, chi tiết từng lô theo nguyên tắc FEFO"
+        title="Tồn kho"
         action={
         <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={() => {setProductError(null);setProductDraft({ id: '', code: '', name: '', unit: 'kg', group: 'Thịt', minStock: 0, refCost: 0 });}}>
+          <Button variant="secondary" onClick={() => {setProductError(null);setProductDraft({ id: '', code: nextProductCode(ingredients), name: '', unit: 'kg', group: 'Thịt', minStock: 0, refCost: 0 });}}>
             <PlusIcon className="h-4 w-4" /> Thêm sản phẩm
           </Button>
-          <Link to="/receive"><Button><PackagePlusIcon className="h-4 w-4" /> Nhập hàng</Button></Link>
+          <Link to="/warehouse/requests"><Button><PackagePlusIcon className="h-4 w-4" /> Đề nghị nhập kho</Button></Link>
         </div>
         } />
-      
+
+      <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Card className="!rounded-xl !shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-slate-200 border-l-4 border-l-blue-800 !bg-blue-100/70 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-700">Mặt hàng đang quản lý</p>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-800">
+              <BoxesIcon className="h-5 w-5" />
+            </span>
+          </div>
+          <p className="tabular mt-3 text-2xl font-bold text-blue-900">{rows.length}</p>
+          <p className="mt-2 inline-flex rounded-full bg-white/70 px-2.5 py-1 text-[11px] font-medium text-slate-600">Theo danh mục nguyên liệu</p>
+        </Card>
+        <Card className="!rounded-xl !shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-slate-200 border-l-4 border-l-emerald-500 !bg-emerald-100/70 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-700">Giá trị tồn khả dụng</p>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
+              <WalletIcon className="h-5 w-5" />
+            </span>
+          </div>
+          <p className="tabular mt-3 text-2xl font-bold text-emerald-900">{formatVnd(inventoryValue)}</p>
+          <p className="mt-2 inline-flex rounded-full bg-white/70 px-2.5 py-1 text-[11px] font-medium text-slate-600">Theo các lô còn khả dụng</p>
+        </Card>
+        <Card className={`!rounded-xl !shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-slate-200 border-l-4 p-4 ${lowRows.length ? 'border-l-orange-500 !bg-orange-100/70' : 'border-l-emerald-500 !bg-emerald-100/70'}`}>
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-700">Dưới mức tồn tối thiểu</p>
+            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${lowRows.length ? 'bg-orange-50 text-orange-700' : 'bg-emerald-50 text-emerald-700'}`}>
+              <AlertTriangleIcon className="h-5 w-5" />
+            </span>
+          </div>
+          <p className={`tabular mt-3 text-2xl font-bold ${lowRows.length ? 'text-orange-900' : 'text-emerald-900'}`}>{lowRows.length}</p>
+          <p className="mt-2 inline-flex rounded-full bg-white/70 px-2.5 py-1 text-[11px] font-medium text-slate-600">Cần theo dõi và lập đề nghị nhập</p>
+        </Card>
+        <Card className={`!rounded-xl !shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-slate-200 border-l-4 p-4 ${expiringLots ? 'border-l-violet-500 !bg-violet-100/70' : 'border-l-emerald-500 !bg-emerald-100/70'}`}>
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-700">Lô sắp hết hạn</p>
+            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${expiringLots ? 'bg-violet-50 text-violet-700' : 'bg-emerald-50 text-emerald-700'}`}>
+              <TimerIcon className="h-5 w-5" />
+            </span>
+          </div>
+          <p className={`tabular mt-3 text-2xl font-bold ${expiringLots ? 'text-violet-900' : 'text-emerald-900'}`}>{expiringLots}</p>
+          <p className="mt-2 inline-flex rounded-full bg-white/70 px-2.5 py-1 text-[11px] font-medium text-slate-600">Theo dõi tại mục hạn sử dụng</p>
+        </Card>
+      </div>
 
       {lowRows.length > 0 &&
-      <Card className="mb-4 border-orange-200 bg-orange-50">
-          <div className="flex flex-wrap items-center gap-4 px-5 py-4">
-            <AlertTriangleIcon className="h-5 w-5 shrink-0 text-orange-600" />
+      <Card className="mb-4 border-2 border-orange-300 !bg-orange-100">
+          <div className="flex items-center gap-3 px-5 py-4">
+            <AlertTriangleIcon className="h-6 w-6 shrink-0 text-orange-700" />
             <div>
-              <p className="text-sm font-semibold text-orange-900">
-                ⚠ Sắp hết nguyên liệu — {lowRows.length} mặt hàng dưới mức tồn
-                tối thiểu
-              </p>
-              <p className="mt-0.5 text-xs text-orange-800">
-                {lowRows.
-              map(
-                (r) =>
-                `${r.ing.name}: ${formatQty(r.avail, r.ing.unit)} / tối thiểu ${formatQty(r.ing.minStock, r.ing.unit)} — đề xuất nhập ${formatQty(Math.max(r.ing.minStock * 2 - r.avail, r.ing.minStock), r.ing.unit)}`
-              ).
-              join(' · ')}
+              <p className="text-base font-bold text-orange-950">
+                Cần nhập thêm {lowRows.length} mặt hàng
               </p>
             </div>
           </div>
@@ -92,7 +144,6 @@ export function Inventory() {
       <Card>
         <CardHeader
           title="Danh mục sản phẩm & tồn kho"
-          subtitle={`${rows.length} sản phẩm · tra cứu và quản lý bằng mã sản phẩm`}
           action={
           <div className="relative w-full sm:w-72">
               <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -254,38 +305,38 @@ export function Inventory() {
             <Button onClick={() => {
               if (!productDraft) return;
               const code = (productDraft.code ?? '').trim();
-              const id = productDraft.id || `ING-${code.replace(/[^A-Z0-9-]/g, '-')}`;
+              const id = productDraft.id || `ING-${code}`;
               const error = saveIngredient({...productDraft, id, code});
               setProductError(error);
               if (!error) setProductDraft(null);
-            }}>Lưu sản phẩm</Button>
+            }}>Lưu</Button>
           </>
         )}
       >
         {productDraft && (
           <div className="space-y-4">
-            <Field label="Mã sản phẩm">
-              <input required value={productDraft.code ?? ''} onChange={(event) => setProductDraft({...productDraft, code: event.target.value.replace(/\s/g, '')})} inputMode="numeric" className={inputClass} placeholder="VD: 8935001100011" />
+            <Field label={<RequiredLabel>Mã sản phẩm</RequiredLabel>}>
+              <input required readOnly value={productDraft.code ?? ''} className={`${inputClass} bg-slate-50 text-slate-500`} />
             </Field>
-            <Field label="Tên sản phẩm">
+            <Field label={<RequiredLabel>Tên sản phẩm</RequiredLabel>}>
               <input required value={productDraft.name} onChange={(event) => setProductDraft({...productDraft, name: event.target.value})} className={inputClass} placeholder="Tên nguyên liệu hoặc sản phẩm" />
             </Field>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Nhóm sản phẩm">
+              <Field label={<RequiredLabel>Nhóm sản phẩm</RequiredLabel>}>
                 <select value={productDraft.group} onChange={(event) => setProductDraft({...productDraft, group: event.target.value as IngredientGroup})} className={inputClass}>
                   {PRODUCT_GROUPS.map((group) => <option key={group}>{group}</option>)}
                 </select>
               </Field>
-              <Field label="Đơn vị tồn kho">
+              <Field label={<RequiredLabel>Đơn vị tồn kho</RequiredLabel>}>
                 <select value={productDraft.unit} onChange={(event) => setProductDraft({...productDraft, unit: event.target.value as Unit})} className={inputClass}>
                   {PRODUCT_UNITS.map((unit) => <option key={unit}>{unit}</option>)}
                 </select>
               </Field>
-              <Field label="Tồn tối thiểu">
-                <input type="number" min="0" step="0.001" value={productDraft.minStock} onChange={(event) => setProductDraft({...productDraft, minStock: Number(event.target.value)})} className={inputClass} />
+              <Field label={<RequiredLabel>Tồn tối thiểu</RequiredLabel>}>
+                <input required type="number" min="0" step="0.001" value={productDraft.minStock} onChange={(event) => setProductDraft({...productDraft, minStock: Number(event.target.value)})} className={inputClass} />
               </Field>
-              <Field label="Giá vốn tham chiếu">
-                <input type="number" min="0" step="100" value={productDraft.refCost} onChange={(event) => setProductDraft({...productDraft, refCost: Number(event.target.value)})} className={inputClass} />
+              <Field label={<RequiredLabel>Giá vốn tham chiếu</RequiredLabel>}>
+                <input required type="number" min="0" step="100" value={productDraft.refCost} onChange={(event) => setProductDraft({...productDraft, refCost: Number(event.target.value)})} className={inputClass} />
               </Field>
             </div>
             {productError && <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{productError}</p>}

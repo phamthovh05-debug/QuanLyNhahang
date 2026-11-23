@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis } from
 'recharts';
+import { BanknoteIcon, CalendarDaysIcon, TrendingUpIcon } from 'lucide-react';
 import { Card, CardHeader, PageHeader } from '../components/ui/Card';
 import { useApp } from '../contexts/AppContext';
 import { useMetrics } from '../hooks/useMetrics';
@@ -19,24 +20,20 @@ type Tab = 'revenue' | 'cost' | 'profit';
 
 const CONFIG: Record<
   Tab,
-  {title: string;subtitle: string;key: string;color: string;}> =
+  {title: string;key: string;color: string;}> =
 {
   revenue: {
     title: 'Doanh thu',
-    subtitle: 'Tổng tiền các đơn hàng đã thanh toán',
     key: 'Doanh thu',
     color: '#2246d4'
   },
   cost: {
     title: 'Chi phí nguyên liệu',
-    subtitle:
-    'Giá vốn nguyên liệu thực tế đã sử dụng cộng chi phí hủy / hao hụt',
     key: 'Chi phí',
     color: '#f97316'
   },
   profit: {
     title: 'Lợi nhuận gộp',
-    subtitle: 'Lợi nhuận gộp = Doanh thu − Giá vốn nguyên liệu',
     key: 'Lợi nhuận',
     color: '#10b981'
   }
@@ -70,31 +67,50 @@ export function Finance() {
 
   return (
     <div className="px-6 py-6">
-      <PageHeader title={cfg.title} subtitle={cfg.subtitle} />
+      <PageHeader title={cfg.title} />
 
-      <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card className="px-5 py-4">
-          <p className="text-xs text-slate-500">Hôm nay</p>
-          <p className="tabular mt-1 text-2xl font-semibold text-slate-900">
-            {formatVnd(todayValue)}
-          </p>
-        </Card>
-        <Card className="px-5 py-4">
-          <p className="text-xs text-slate-500">7 ngày gần nhất</p>
-          <p className="tabular mt-1 text-2xl font-semibold text-slate-900">
-            {formatVnd(monthValue)}
-          </p>
-        </Card>
-        <Card className="px-5 py-4">
-          <p className="text-xs text-slate-500">Trung bình / ngày</p>
-          <p className="tabular mt-1 text-2xl font-semibold text-slate-900">
-            {formatVnd(monthValue / 7)}
-          </p>
-        </Card>
+      <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {[
+          {
+            label: 'Hôm nay',
+            amount: todayValue,
+            note: `Tổng ${cfg.title.toLocaleLowerCase('vi')} hôm nay`,
+            icon: BanknoteIcon,
+            accentClass: 'border-l-blue-800 !bg-blue-100/70',
+            iconClass: 'bg-blue-50 text-blue-800'
+          },
+          {
+            label: '7 ngày gần nhất',
+            amount: monthValue,
+            note: `Tổng ${cfg.title.toLocaleLowerCase('vi')} trong 7 ngày`,
+            icon: CalendarDaysIcon,
+            accentClass: 'border-l-emerald-500 !bg-emerald-100/70',
+            iconClass: 'bg-emerald-50 text-emerald-700'
+          },
+          {
+            label: 'Trung bình / ngày',
+            amount: monthValue / 7,
+            note: 'Bình quân trong 7 ngày gần nhất',
+            icon: TrendingUpIcon,
+            accentClass: 'border-l-violet-500 !bg-violet-100/70',
+            iconClass: 'bg-violet-50 text-violet-700'
+          }
+        ].map(({ label, amount, note, icon: Icon, accentClass, iconClass }) => (
+          <Card key={label} className={`!rounded-xl !shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-slate-200 border-l-4 ${accentClass} p-5`}>
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-base font-bold uppercase tracking-wide text-slate-700">{label}</p>
+              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${iconClass}`}>
+                <Icon className="h-5 w-5" />
+              </span>
+            </div>
+            <p className="tabular mt-3 text-2xl font-bold tracking-tight text-slate-900">{formatVnd(amount)}</p>
+            <p className="mt-2 inline-flex rounded-full bg-white/70 px-2.5 py-1 text-[11px] font-medium text-slate-600">{note}</p>
+          </Card>
+        ))}
       </div>
 
       <Card>
-        <CardHeader title={`${cfg.title} theo ngày`} subtitle="7 ngày gần nhất" />
+        <CardHeader title={`${cfg.title} theo ngày`} />
         <div className="h-80 px-3 py-4">
           <ResponsiveContainer width="100%" height="100%">
             {cfg.key === 'Chi phí' ?
@@ -121,8 +137,7 @@ export function Finance() {
       <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
         <Card>
           <CardHeader
-            title="Đơn hàng trong ca"
-            subtitle="Doanh thu và giá vốn ghi nhận theo từng hóa đơn" />
+            title="Đơn hàng trong ca" />
           
           <table className="w-full text-sm">
             <thead>
@@ -160,11 +175,6 @@ export function Finance() {
             cfg.key === 'Chi phí' ?
             'Chi phí theo nguyên liệu' :
             'Đóng góp theo món'
-            }
-            subtitle={
-            cfg.key === 'Chi phí' ?
-            'Giá trị nguyên liệu đã xuất và hủy' :
-            'Doanh thu theo món bán chạy'
             } />
           
           <ul className="divide-y divide-slate-100">
@@ -184,7 +194,7 @@ export function Finance() {
               key={name}
               className="flex items-center justify-between px-5 py-3 text-sm">
               
-                      <span className="text-slate-700">{name}</span>
+                      <span className="font-semibold text-brand-700">{name}</span>
                       <span className="tabular font-medium text-slate-900">
                         {formatVnd(value)}
                       </span>
@@ -195,7 +205,7 @@ export function Finance() {
               key={d.name}
               className="flex items-center justify-between px-5 py-3 text-sm">
               
-                    <span className="text-slate-700">
+                    <span className="font-semibold text-brand-700">
                       {d.name}
                       <span className="ml-2 text-xs text-slate-400">
                         {d.sold} phần

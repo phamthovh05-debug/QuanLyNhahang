@@ -5,6 +5,7 @@ import { Badge } from '../components/ui/Badge';
 import { OrderTicket } from '../components/order/OrderTicket';
 import { useApp } from '../contexts/AppContext';
 import { formatVnd } from '../utils/format';
+import { billableQty } from '../utils/order';
 import { servingsAvailable } from '../utils/inventory';
 
 const CATEGORIES = [
@@ -20,7 +21,7 @@ const;
 
 export function OrderPage() {
   const { tableId = '' } = useParams();
-  const { dishes, batches, tableOf, areas, openOrderOf, addLine } = useApp();
+  const { dishes, batches, orders, tableOf, areas, openOrderOf, addLine } = useApp();
   const [category, setCategory] = useState<string>('Tất cả');
   const [query, setQuery] = useState('');
 
@@ -81,8 +82,21 @@ export function OrderPage() {
         <div className="flex-1 overflow-y-auto scroll-thin bg-slate-100 p-5">
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 2xl:grid-cols-4">
             {visible.map((dish) => {
-              const servings = servingsAvailable(dish, batches);
+              const stockServings = servingsAvailable(dish, batches);
+              const campaignLimit = dish.special && dish.specialCampaignId && dish.specialRemaining !== undefined
+                ? dish.specialRemaining
+                : Number.POSITIVE_INFINITY;
+              const reserved = campaignLimit === Number.POSITIVE_INFINITY
+                ? 0
+                : orders
+                  .filter((openOrder) => openOrder.status === 'OPEN')
+                  .flatMap((openOrder) => openOrder.lines)
+                  .filter((line) => line.specialCampaignId === dish.specialCampaignId)
+                  .reduce((sum, line) => sum + billableQty(line), 0);
+              const specialServings = Math.max(0, campaignLimit - reserved);
+              const servings = Math.min(stockServings, specialServings);
               const soldOut = servings <= 0;
+              const specialPrice = dish.special ? dish.specialPrice ?? dish.price : dish.price;
               return (
                 <button
                   key={dish.id}
@@ -102,7 +116,7 @@ export function OrderPage() {
                     }
                     {soldOut &&
                     <span className="absolute right-2 top-2 rounded-full bg-slate-900/80 px-2 py-1 text-[11px] font-semibold text-white">
-                        Hết nguyên liệu
+                        {dish.special && specialServings <= 0 ? 'Hết số lượng' : 'Hết nguyên liệu'}
                       </span>
                     }
                   </div>
@@ -113,7 +127,7 @@ export function OrderPage() {
                     </p>
                     <div className="mt-auto flex items-end justify-between pt-3">
                       <span className="tabular text-sm font-semibold text-slate-900">
-                        {formatVnd(dish.price)}
+                        {formatVnd(specialPrice)}
                       </span>
                       <Badge tone={servings <= 0 ? 'red' : servings <= 5 ? 'amber' : 'green'}>
                         Còn {servings}

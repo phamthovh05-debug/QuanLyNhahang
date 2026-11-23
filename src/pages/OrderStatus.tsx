@@ -5,7 +5,7 @@ import { useApp } from '../contexts/AppContext';
 import { formatDateTime } from '../utils/format';
 
 const STATE: Record<string, {label:string;tone:'amber'|'blue'|'green'|'red'|'slate'}> = {
-  PENDING:{label:'Chờ chế biến',tone:'amber'}, COOKING:{label:'Đang chế biến',tone:'blue'}, READY:{label:'Đã hoàn thành',tone:'green'}, CANCELLED:{label:'Đã hủy',tone:'red'}, CASHIER_PENDING:{label:'Chờ phục vụ',tone:'green'}, DRAFT:{label:'Chưa gửi bếp',tone:'slate'}
+  PENDING:{label:'Chờ chế biến',tone:'amber'}, COOKING:{label:'Đang chế biến',tone:'blue'}, READY:{label:'Sẵn sàng phục vụ',tone:'green'}, CANCELLED:{label:'Đã hủy',tone:'red'}, CASHIER_PENDING:{label:'Chờ phục vụ',tone:'green'}, DRAFT:{label:'Chưa gửi bếp',tone:'slate'}
 };
 
 export function OrderStatus() {

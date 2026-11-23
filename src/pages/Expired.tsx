@@ -14,28 +14,18 @@ export function Expired() {
   const [disposing, setDisposing] = useState<Batch | null>(null);
 
   const expired = batches.filter((b) => batchState(b) === 'EXPIRED');
-  const totalValue = expired.reduce((s, b) => s + b.quantity * b.unitCost, 0);
 
   return (
     <div className="px-6 py-6">
       <PageHeader
-        title="Hàng hết hạn"
-        subtitle="Nguyên liệu quá hạn sử dụng — không được phép chế biến hoặc bán" />
+        title="Hàng hết hạn" />
       
 
-      <Card className="mb-4 border-red-200 bg-red-50">
-        <div className="flex flex-wrap items-center gap-4 px-5 py-4">
-          <BanIcon className="h-5 w-5 shrink-0 text-red-600" />
-          <p className="text-sm text-red-900">
-            <span className="font-semibold">
-              {expired.length} lô đã hết hạn
-            </span>{' '}
-            — tổng giá trị{' '}
-            <span className="tabular font-semibold">
-              {formatVnd(totalValue)}
-            </span>
-            . Các lô này đã bị loại khỏi tồn kho khả dụng cho Order và Bếp, cần
-            xử lý hủy để ghi nhận chi phí hao hụt.
+      <Card className="mb-4 border-2 border-red-400 !bg-red-100">
+        <div className="flex items-center gap-3 px-5 py-4">
+          <BanIcon className="h-6 w-6 shrink-0 text-red-700" />
+          <p className="text-base font-bold text-red-950">
+            {expired.length} lô đã hết hạn
           </p>
         </div>
       </Card>

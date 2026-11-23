@@ -18,7 +18,6 @@ import {
   BoxesIcon,
   ChefHatIcon,
   FlameIcon,
-  PackageIcon,
   ReceiptTextIcon,
   TimerIcon,
   TrendingDownIcon,
@@ -54,16 +53,10 @@ export function Dashboard() {
   return (
     <div className="px-6 py-6">
       <PageHeader
-        title="Tổng quan hôm nay"
+        title="Tổng quan"
         subtitle="Doanh thu, giá vốn nguyên liệu và tình trạng kho theo thời gian thực"
         action={
         <div className="flex gap-2">
-            <Link to="/receive">
-              <Button variant="secondary">
-                <PackageIcon className="h-4 w-4" />
-                Nhập hàng
-              </Button>
-            </Link>
             <Link to="/tables">
               <Button>
                 <ReceiptTextIcon className="h-4 w-4" />

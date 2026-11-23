@@ -15,7 +15,6 @@ import {
   PackageCheckIcon,
   PackagePlusIcon,
   ReceiptTextIcon,
-  SearchIcon,
   ScrollTextIcon,
   SettingsIcon,
   TimerIcon,
@@ -50,10 +49,11 @@ export const navGroups: {title: string;items: NavItem[];}[] = [
 {
   title: 'Vận hành',
   items: [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboardIcon, roles: [QL] },
+  { to: '/', label: 'Tổng quan', icon: LayoutDashboardIcon, roles: [QL] },
   { to: '/tables', label: 'Sơ đồ bàn', icon: LayoutGridIcon, roles: [QL, PV] },
   { to: '/kitchen', label: 'Bếp', icon: ChefHatIcon, roles: [BEP], badge: 'kitchen' },
-  { to: '/cashier', label: 'Sơ đồ bàn', icon: LayoutGridIcon, roles: [TN], badge: 'cashier' },
+  { to: '/kitchen/history', label: 'Lịch sử món', icon: HistoryIcon, roles: [BEP] },
+  { to: '/cashier', label: 'Thanh toán', icon: LayoutGridIcon, roles: [TN], badge: 'cashier' },
   { to: '/cashier?screen=available', label: 'Món có sẵn', icon: PackageCheckIcon, roles: [TN] },
   { to: '/cashier?screen=shift', label: 'Chốt ca', icon: WalletIcon, roles: [TN] },
   { to: '/invoices', label: 'Lịch sử hóa đơn', icon: ScrollTextIcon, roles: [QL, TN] }]
@@ -74,7 +74,6 @@ export const navGroups: {title: string;items: NavItem[];}[] = [
   { to: '/warehouse/forecast', label: 'Dự báo & đề xuất nhập', icon: TrendingUpIcon, roles: [KHO] },
   { to: '/warehouse/requests', label: 'Đề nghị nhập kho', icon: PackagePlusIcon, roles: [KHO] },
   { to: '/warehouse/stocktake', label: 'Biên bản kiểm kê', icon: ClipboardCheckIcon, roles: [KHO] },
-  { to: '/receive', label: 'Nhập hàng', icon: PackagePlusIcon, roles: [KHO] },
   { to: '/batches', label: 'Lô hàng', icon: BoxesIcon, roles: [KHO] },
   { to: '/expiry', label: 'Hạn sử dụng', icon: TimerIcon, roles: [KHO], badge: 'nearExpiry' },
   { to: '/expired', label: 'Hàng hết hạn', icon: AlertTriangleIcon, roles: [KHO], badge: 'expired' },
@@ -88,18 +87,23 @@ export const navGroups: {title: string;items: NavItem[];}[] = [
   { to: '/manager/customers', label: 'Quản lý khách hàng', icon: UsersIcon, roles: [QL] }]
 },
 {
+  title: 'Nhân sự',
+  items: [
+  { to: '/manager/attendance', label: 'Quản lý chấm công', icon: ClipboardCheckIcon, roles: [QL] },
+  { to: '/attendance', label: 'Lịch làm & chấm công', icon: ClipboardCheckIcon, roles: [KHO, PV, BEP, TN, KT] }]
+},
+{
   title: 'Tài chính',
   items: [
   { to: '/accountant', label: 'Tổng quan kế toán', icon: ClipboardCheckIcon, roles: [KT] },
   { to: '/accountant/revenue', label: 'Theo dõi doanh thu', icon: ReceiptTextIcon, roles: [KT] },
   { to: '/accountant/cash-vouchers', label: 'Phiếu thu, chi', icon: ReceiptTextIcon, roles: [KT] },
-  { to: '/accountant/debts', label: 'Quản lý công nợ', icon: CoinsIcon, roles: [KT] },
+  { to: '/accountant/debts', label: 'Phải trả, phải thu', icon: CoinsIcon, roles: [KT] },
   { to: '/accountant/costs', label: 'Theo dõi chi phí', icon: CoinsIcon, roles: [KT] },
-  { to: '/accountant/lookup', label: 'Tra cứu doanh thu, chi phí', icon: SearchIcon, roles: [KT] },
-  { to: '/accountant/requests', label: 'Duyệt đề nghị', icon: PackagePlusIcon, roles: [KT] },
-  { to: '/accountant/payroll', label: 'Kiểm tra bảng lương', icon: CoinsIcon, roles: [KT] },
-  { to: '/manager/requests', label: 'Phê duyệt đề nghị nhập kho', icon: PackagePlusIcon, roles: [QL] },
-  { to: '/manager/attendance', label: 'Chấm công', icon: ClipboardCheckIcon, roles: [QL] },
+  { to: '/receive', label: 'Nhập hàng', icon: PackagePlusIcon, roles: [KT] },
+  { to: '/accountant/requests', label: 'Tiếp nhận đề nghị nhập kho', icon: PackagePlusIcon, roles: [KT] },
+  { to: '/accountant/payroll', label: 'Lập bảng lương', icon: CoinsIcon, roles: [KT] },
+  { to: '/manager/stocktake', label: 'Duyệt kết quả kiểm kê kho', icon: ClipboardCheckIcon, roles: [QL] },
   { to: '/manager/payroll', label: 'Bảng lương', icon: CoinsIcon, roles: [QL] },
   { to: '/accountant/reconciliation', label: 'Đối chiếu ngân sách', icon: CoinsIcon, roles: [KT] },
   { to: '/accountant/reports', label: 'Báo cáo tài chính', icon: BarChart3Icon, roles: [KT] },
@@ -107,7 +111,8 @@ export const navGroups: {title: string;items: NavItem[];}[] = [
   { to: '/finance/cost', label: 'Chi phí', icon: CoinsIcon, roles: [QL] },
   { to: '/finance/profit', label: 'Lợi nhuận', icon: TrendingUpIcon, roles: [QL] },
   { to: '/manager/cashier-shifts', label: 'Báo cáo chốt ca thu ngân', icon: ClipboardCheckIcon, roles: [QL] },
-  { to: '/reports', label: 'Báo cáo', icon: BarChart3Icon, roles: [QL, KHO] }]
+  { to: '/manager/reports', label: 'Báo cáo tài chính', icon: BarChart3Icon, roles: [QL] },
+  { to: '/reports', label: 'Báo cáo', icon: BarChart3Icon, roles: [KHO] }]
 
 },
 {
@@ -130,17 +135,19 @@ export const routeRoles: Record<string, Role[]> = {
   '/finance': [QL],
   '/accountant': [KT],
   '/accountant/requests': [KT],
-  '/manager/requests': [QL],
+  '/manager/stocktake': [QL],
+  '/manager/reports': [QL],
   '/manager/attendance': [QL],
+  '/attendance': [KHO, PV, BEP, TN, KT],
   '/accountant/reconciliation': [KT],
   '/accountant/reports': [KT]
   ,'/accountant/revenue': [KT]
   ,'/accountant/cash-vouchers': [KT]
   ,'/accountant/costs': [KT]
-  ,'/accountant/lookup': [KT]
   ,'/admin/accounts': [ADMIN],
   '/admin/logins': [ADMIN],
   '/order-status': [PV],
   '/warehouse/requests': [KHO],
+  '/warehouse/receipt': [KT],
   '/warehouse/stocktake': [KHO]
 };

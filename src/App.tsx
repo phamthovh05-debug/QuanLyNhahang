@@ -9,10 +9,11 @@ import { Dashboard } from './pages/Dashboard';
 import { Tables } from './pages/Tables';
 import { OrderPage } from './pages/OrderPage';
 import { Kitchen } from './pages/Kitchen';
+import { KitchenHistory } from './pages/KitchenHistory';
 import { Cashier } from './pages/Cashier';
 import { Invoices } from './pages/Invoices';
 import { Inventory } from './pages/Inventory';
-import { Receive } from './pages/Receive';
+import { Receive, WarehouseReceiptDetail, WarehouseReceiptList } from './pages/Receive';
 import { Batches } from './pages/Batches';
 import { Expiry } from './pages/Expiry';
 import { Specials } from './pages/Specials';
@@ -28,7 +29,7 @@ import { Settings } from './pages/Settings';
 import { Accountant } from './pages/Accountant';
 import { AdminAccounts, LoginHistory } from './pages/Admin';
 import { OrderStatus } from './pages/OrderStatus';
-import { PurchaseRequests, Stocktake } from './pages/WarehouseForms';
+import { ManagerStocktakeReview, PurchaseRequests, Stocktake } from './pages/WarehouseForms';
 import { WarehouseForecast } from './pages/WarehouseForecast';
 import { Attendance } from './pages/Attendance';
 import { Payroll } from './pages/Payroll';
@@ -42,11 +43,15 @@ const ROUTES: {path: string;guard: string;element: React.ReactNode;}[] = [
 { path: '/tables', guard: '/tables', element: <Tables /> },
 { path: '/order/:tableId', guard: '/order', element: <OrderPage /> },
 { path: '/kitchen', guard: '/kitchen', element: <Kitchen /> },
+{ path: '/kitchen/history', guard: '/kitchen/history', element: <KitchenHistory /> },
 { path: '/cashier', guard: '/cashier', element: <Cashier /> },
 { path: '/manager/cashier-shifts', guard: '/manager/cashier-shifts', element: <ManagerCashierShifts /> },
+{ path: '/attendance', guard: '/attendance', element: <Attendance /> },
 { path: '/invoices', guard: '/invoices', element: <Invoices /> },
 { path: '/inventory', guard: '/inventory', element: <Inventory /> },
 { path: '/receive', guard: '/receive', element: <Receive /> },
+{ path: '/warehouse/receipt', guard: '/warehouse/receipt', element: <WarehouseReceiptList /> },
+{ path: '/warehouse/receipt/:transactionId', guard: '/warehouse/receipt', element: <WarehouseReceiptDetail /> },
 { path: '/batches', guard: '/batches', element: <Batches /> },
 { path: '/expiry', guard: '/expiry', element: <Expiry /> },
 { path: '/specials', guard: '/specials', element: <Specials /> },
@@ -70,14 +75,14 @@ ROUTES.push(
 ROUTES.push(
 { path: '/accountant', guard: '/accountant', element: <Accountant initialTab="overview" /> },
 { path: '/accountant/requests', guard: '/accountant/requests', element: <Accountant initialTab="requests" /> },
-{ path: '/manager/requests', guard: '/manager/requests', element: <Accountant initialTab="requests" /> },
+{ path: '/manager/stocktake', guard: '/manager/stocktake', element: <ManagerStocktakeReview /> },
+{ path: '/manager/reports', guard: '/manager/reports', element: <Reports /> },
 { path: '/manager/attendance', guard: '/manager/attendance', element: <Attendance /> },
 { path: '/manager/payroll', guard: '/manager/payroll', element: <Payroll /> },
 { path: '/manager/customers', guard: '/manager/customers', element: <Customers /> },
 { path: '/accountant/payroll', guard: '/accountant/payroll', element: <Payroll /> },
 { path: '/accountant/reconciliation', guard: '/accountant/reconciliation', element: <Accountant initialTab="reconciliation" /> },
 { path: '/accountant/reports', guard: '/accountant/reports', element: <Accountant initialTab="reports" /> }
-,{ path: '/accountant/lookup', guard: '/accountant/lookup', element: <Accountant initialTab="lookup" /> }
 ,{ path: '/accountant/revenue', guard: '/accountant/revenue', element: <Accountant initialTab="revenue" /> }
 ,{ path: '/accountant/cash-vouchers', guard: '/accountant/cash-vouchers', element: <Accountant initialTab="vouchers" /> }
 ,{ path: '/accountant/debts', guard: '/accountant/debts', element: <Debts /> }

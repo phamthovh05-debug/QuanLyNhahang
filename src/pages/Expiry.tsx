@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { FlameIcon, Trash2Icon } from 'lucide-react';
+import { Trash2Icon } from 'lucide-react';
 import { Card, CardHeader, PageHeader } from '../components/ui/Card';
 import { Badge, StateBadge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -11,11 +10,11 @@ import { formatDate, formatQty, formatVnd } from '../utils/format';
 import { batchState, countdownLabel, daysLeft } from '../utils/inventory';
 import type { Batch, BatchState } from '../types';
 
-const GROUPS: {state: BatchState;label: string;tone: string;}[] = [
-{ state: 'FRESH', label: '🟢 Còn hạn', tone: 'text-emerald-600' },
-{ state: 'NEAR_EXPIRY', label: '🟡 Sắp hết hạn', tone: 'text-amber-600' },
-{ state: 'EXPIRED', label: '🔴 Đã hết hạn', tone: 'text-red-600' },
-{ state: 'CANCELLED', label: '⚫ Đã hủy', tone: 'text-slate-500' }];
+const GROUPS: {state: BatchState;label: string;tone: string;cardTone:string;borderTone:string;}[] = [
+{ state: 'FRESH', label: '🟢 Còn hạn', tone: 'text-emerald-900', cardTone: '!bg-emerald-100/70', borderTone: 'border-l-emerald-500' },
+{ state: 'NEAR_EXPIRY', label: '🟡 Sắp hết hạn', tone: 'text-amber-900', cardTone: '!bg-amber-100/70', borderTone: 'border-l-amber-500' },
+{ state: 'EXPIRED', label: '🔴 Đã hết hạn', tone: 'text-red-900', cardTone: '!bg-red-100/70', borderTone: 'border-l-red-500' },
+{ state: 'CANCELLED', label: '⚫ Đã hủy', tone: 'text-slate-700', cardTone: '!bg-slate-100/70', borderTone: 'border-l-slate-500' }];
 
 
 export function Expiry() {
@@ -44,8 +43,7 @@ export function Expiry() {
   return (
     <div className="px-6 py-6">
       <PageHeader
-        title="Theo dõi hạn sử dụng"
-        subtitle="Hệ thống kiểm tra hạn sử dụng hằng ngày — còn ≤ 2 ngày sẽ chuyển sang trạng thái SẮP HẾT HẠN" />
+        title="Hạn sử dụng" />
       
 
       <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -53,25 +51,24 @@ export function Expiry() {
         <button
           key={g.state}
           onClick={() => setTab(g.state)}
-          className={`rounded-xl border bg-white px-4 py-3.5 text-left shadow-card transition-colors duration-150 ease-out ${
+          className={`rounded-xl border border-l-4 px-4 py-3.5 text-left shadow-card transition-colors duration-150 ease-out ${g.cardTone} ${g.borderTone} ${
           tab === g.state ?
-          'border-slate-900 ring-1 ring-slate-900' :
-          'border-slate-200 hover:border-slate-300'}`
+          'ring-2 ring-slate-400' :
+          'hover:brightness-[0.98]'}`
           }>
           
-            <p className="text-xs text-slate-500">{g.label}</p>
-            <p className={`tabular mt-1 text-2xl font-semibold ${g.tone}`}>
+            <p className="text-xs font-bold uppercase tracking-wide text-slate-700">{g.label}</p>
+            <p className={`tabular mt-3 text-2xl font-bold ${g.tone}`}>
               {counts[i]}
             </p>
-            <p className="text-xs text-slate-400">lô hàng</p>
+            <p className="mt-2 inline-flex rounded-full bg-white/70 px-2.5 py-1 text-[11px] font-medium text-slate-600">lô hàng</p>
           </button>
         )}
       </div>
 
       <Card>
         <CardHeader
-          title={GROUPS.find((g) => g.state === tab)?.label ?? ''}
-          subtitle={`${rows.length} lô`} />
+          title={GROUPS.find((g) => g.state === tab)?.label ?? ''} />
         
         <div className="grid grid-cols-1 gap-3 border-b border-slate-200 px-5 py-4 sm:grid-cols-3">
           <Field label="Nguyên liệu">
@@ -155,14 +152,6 @@ export function Expiry() {
                   {formatVnd(b.quantity * b.unitCost)}
                 </div>
                 <div className="flex gap-2">
-                  {tab === 'NEAR_EXPIRY' &&
-                  <Link to="/specials">
-                      <Button size="sm" variant="warning">
-                        <FlameIcon className="h-3.5 w-3.5" />
-                        TẠO MÓN ĐẶC BIỆT
-                      </Button>
-                    </Link>
-                  }
                   {(tab === 'EXPIRED' || tab === 'FRESH') &&
                   <Button
                     size="sm"

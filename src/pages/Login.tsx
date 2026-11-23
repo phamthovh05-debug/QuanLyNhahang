@@ -1,35 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ChefHatIcon,
-  ClipboardCheckIcon,
   ClipboardListIcon,
   EyeIcon,
   EyeOffIcon,
-  LayoutGridIcon,
-  PackageIcon,
-  ShieldCheckIcon,
-  WalletIcon } from
+  LockKeyholeIcon,
+  UserRoundIcon } from
 'lucide-react';
 import { Button } from '../components/ui/Button';
-import { Field, inputClass } from '../components/ui/Field';
 import { ROLE_HOME, useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
 import { normalizeLoginName, readAdminAccounts } from './Admin';
-import type { Role } from '../types';
-
-const ROLE_INFO: Record<
-  Role,
-  {icon: React.ComponentType<{className?: string;}>;desc: string;}> =
-{
-  'Quản lý': { icon: ShieldCheckIcon, desc: 'Món ăn, bàn, báo cáo, tồn kho' },
-  Admin: { icon: ShieldCheckIcon, desc: 'Tài khoản và lịch sử đăng nhập' },
-  'Phục vụ': { icon: LayoutGridIcon, desc: 'Sơ đồ bàn, gọi món' },
-  Bếp: { icon: ChefHatIcon, desc: 'Chế biến, công thức, hao hụt' },
-  'Thu ngân': { icon: WalletIcon, desc: 'Thanh toán, hóa đơn' },
-  'Nhân viên kho': { icon: PackageIcon, desc: 'Nhập hàng, lô, hạn dùng' },
-  'Kế toán': { icon: ClipboardCheckIcon, desc: 'Duyệt ngân sách, báo cáo' }
-};
 
 export function Login() {
   const accounts = readAdminAccounts();
@@ -42,151 +23,148 @@ export function Login() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const submit = (u = username, p = password) => {
-    if (!u || !p) {
-      setError('Vui lòng nhập tài khoản và mật khẩu');
+  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!username.trim() || !password) {
+      setError('Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.');
       return;
     }
+
     setLoading(true);
     setError(null);
     window.setTimeout(() => {
-      const err = login(u, p);
+      const err = login(username, password);
       setLoading(false);
       if (err) {
         setError(err);
         return;
       }
-      const loginName = normalizeLoginName(u);
-      const acc = accounts.find((a) => normalizeLoginName(a.username) === loginName || normalizeLoginName(a.name) === loginName);
-      const destination = acc?.role === 'Thu ngân'
-        ? cashierShifts.some((shift) => shift.cashier === acc.name && shift.status === 'OPEN') ? '/cashier' : '/cashier?screen=shift'
-        : acc ? ROLE_HOME[acc.role] : '/';
+
+      const loginName = normalizeLoginName(username);
+      const account = accounts.find((item) =>
+        normalizeLoginName(item.username) === loginName ||
+        normalizeLoginName(item.name) === loginName
+      );
+      const destination = account?.role === 'Thu ngân'
+        ? cashierShifts.some((shift) => shift.cashier === account.name && shift.status === 'OPEN')
+          ? '/cashier'
+          : '/cashier?screen=shift'
+        : account ? ROLE_HOME[account.role] : '/';
       navigate(destination, { replace: true });
     }, 350);
   };
 
   return (
-    <div className="flex min-h-full w-full bg-white">
-      <div className="hidden w-[44%] flex-col justify-between bg-slate-900 p-12 text-white lg:flex">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-600">
+    <main className="grid min-h-screen w-full bg-slate-50 lg:grid-cols-2">
+      <section
+        className="relative flex min-h-[310px] flex-col justify-between overflow-hidden bg-cover bg-center px-7 py-7 text-white sm:min-h-[370px] sm:px-12 sm:py-10 lg:min-h-screen lg:px-14 lg:py-12 xl:px-20"
+        style={{ backgroundImage: "url('/2bbcaae5-e9ae-4d34-95d5-4b8b63c0b2a5.jpg')" }}>
+        <div className="absolute inset-0 bg-slate-950/55" />
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-950/65 via-blue-950/10 to-slate-950/70" />
+
+        <div className="relative flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/20 bg-white/10 shadow-lg backdrop-blur-md">
             <ClipboardListIcon className="h-5 w-5" />
           </div>
           <div>
-            <p className="font-semibold leading-tight">BếpKho</p>
-            <p className="text-xs leading-tight text-slate-400">
-              Nhà hàng Sen Vàng
+            <p className="text-sm font-semibold tracking-wide text-white">BếpKho</p>
+            <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.18em] text-white/70">
+              Sen Vàng Restaurant
             </p>
           </div>
         </div>
-        <div>
-          <h1 className="max-w-md text-3xl font-semibold leading-tight">
-            Từ lúc khách gọi món đến khi trừ kho — một luồng duy nhất.
+
+        <div className="relative my-12 max-w-xl lg:my-auto lg:py-16">
+          <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-2 text-xs font-medium text-blue-50 backdrop-blur">
+            ẨM THỰC SEN VÀNG
+          </span>
+          <h1 className="max-w-lg text-3xl font-semibold leading-tight tracking-tight text-white sm:text-4xl xl:text-5xl">
+            Trọn vị món ngon,
+            <span className="block text-blue-200">trọn tâm trải nghiệm.</span>
           </h1>
-          <p className="mt-4 max-w-md text-sm leading-relaxed text-slate-400">
-            Phục vụ gửi order, bếp chế biến, thu ngân thanh toán và hệ thống tự
-            trừ nguyên liệu theo công thức, ưu tiên lô hết hạn trước.
+          <p className="mt-5 max-w-lg text-sm leading-7 text-white/80 sm:text-base">
+            Không gian ấm cúng, món Việt đậm đà và sự chỉn chu trong từng trải nghiệm
+            — chào mừng bạn đến với Sen Vàng.
           </p>
         </div>
-        <p className="text-xs text-slate-500">© 2026 Sen Vàng Restaurant</p>
-      </div>
 
-      <div className="flex flex-1 items-center justify-center px-6 py-12">
-        <div className="w-full max-w-md">
-          <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
-            Đăng nhập
-          </h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Màn hình và quyền thao tác sẽ hiển thị theo vai trò của bạn.
-          </p>
+        <p className="relative text-xs text-white/60">© 2026 Sen Vàng Restaurant</p>
+      </section>
 
-          <form
-            className="mt-8 space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              submit();
-            }}>
-            
-            <Field label="Tên đăng nhập hoặc họ tên">
-              <input
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                autoComplete="username"
-                placeholder="vd: nguyenminhquan hoặc Nguyễn Minh Quân"
-                className={inputClass} />
-              
-            </Field>
-            <Field label="Mật khẩu">
-              <div className="relative">
+      <section className="flex min-h-[520px] items-center justify-center bg-gradient-to-br from-blue-50 via-slate-50 to-indigo-50 px-5 py-12 sm:px-8 lg:min-h-screen lg:px-12">
+        <div className="w-full max-w-[440px] rounded-[26px] border border-white bg-white p-7 shadow-[0_24px_70px_rgba(30,64,175,0.12)] sm:p-10">
+          <div className="mb-8 text-center">
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-900/20">
+              <ClipboardListIcon className="h-6 w-6" />
+            </div>
+            <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
+              Đăng nhập
+            </h2>
+          </div>
+
+          <form className="space-y-5" onSubmit={submit}>
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium text-slate-700">
+                Tên đăng nhập hoặc họ tên
+              </span>
+              <span className="relative block">
+                <UserRoundIcon
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-400" />
+                <input
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  required
+                  aria-label="Tên đăng nhập hoặc họ tên"
+                  placeholder="Nhập tên đăng nhập hoặc họ tên"
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 hover:border-blue-300 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/10" />
+              </span>
+            </label>
+
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium text-slate-700">Mật khẩu</span>
+              <span className="relative block">
+                <LockKeyholeIcon
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-400" />
                 <input
                   type={show ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(event) => setPassword(event.target.value)}
                   autoComplete="current-password"
-                  placeholder="••••••"
-                  className={`${inputClass} pr-10`} />
-                
+                  required
+                  aria-label="Mật khẩu"
+                  aria-describedby={error ? 'login-error' : undefined}
+                  placeholder="Nhập mật khẩu"
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-12 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 hover:border-blue-300 focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/10" />
                 <button
                   type="button"
-                  onClick={() => setShow((v) => !v)}
+                  onClick={() => setShow((visible) => !visible)}
                   aria-label={show ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:text-slate-700">
-                  
-                  {show ?
-                  <EyeOffIcon className="h-4 w-4" /> :
-
-                  <EyeIcon className="h-4 w-4" />
-                  }
+                  aria-pressed={show}
+                  className="absolute right-2.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition hover:bg-blue-50 hover:text-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">
+                  {show
+                    ? <EyeOffIcon aria-hidden="true" className="h-[18px] w-[18px]" />
+                    : <EyeIcon aria-hidden="true" className="h-[18px] w-[18px]" />}
                 </button>
-              </div>
-            </Field>
-            {error &&
-            <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+              </span>
+            </label>
+
+            {error && (
+              <p id="login-error" role="alert" className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {error}
               </p>
-            }
-            <Button type="submit" size="lg" className="w-full" disabled={loading}>
+            )}
+
+            <Button type="submit" size="lg" className="h-12 w-full gap-2 rounded-xl bg-blue-600 text-sm shadow-md shadow-blue-900/10 hover:bg-blue-700" disabled={loading}>
               {loading ? 'Đang đăng nhập…' : 'Đăng nhập'}
             </Button>
           </form>
-
-          <div className="mt-10">
-            <p className="text-xs font-medium text-slate-500">
-              Tài khoản demo — mật khẩu <span className="font-mono">123456</span>
-            </p>
-            <ul className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-200">
-              {accounts.map((a) => {
-                const info = ROLE_INFO[a.role];
-                return (
-                  <li key={a.username}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setUsername(a.username);
-                        setPassword(a.password);
-                        submit(a.username, a.password);
-                      }}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-150 ease-out hover:bg-slate-50">
-                      
-                      <info.icon className="h-4 w-4 text-slate-500" />
-                      <span className="w-28 text-sm font-medium text-slate-900">
-                        {a.role}
-                      </span>
-                      <span className="flex-1 truncate text-xs text-slate-500">
-                        {info.desc}
-                      </span>
-                      <span className="flex-1 truncate text-right">
-                        <span className="block text-sm font-medium text-slate-800">{a.name}</span>
-                        <span className="font-mono text-[11px] text-slate-400">{a.username}</span>
-                      </span>
-                    </button>
-                  </li>);
-
-              })}
-            </ul>
-          </div>
         </div>
-      </div>
-    </div>);
-
+      </section>
+    </main>
+  );
 }

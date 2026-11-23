@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { PackagePlusIcon, ReceiptTextIcon, TrendingUpIcon, type LucideIcon } from 'lucide-react';
 import { Card, PageHeader } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -63,17 +64,33 @@ export function WarehouseForecast(){
   };
 
   return <div className="px-6 py-6">
-    <PageHeader title="Dự báo & đề xuất nhập hàng" subtitle={`Dự báo nhu cầu nguyên liệu cho ngày ${new Date(forecastDate).toLocaleDateString('vi-VN')}`} />
-    <div className="mb-5 grid gap-3 sm:grid-cols-3"><Stat label="Bill đã thanh toán" value={String(paidOrders.length)} note={`Trong ${DAYS} ngày gần nhất`} /><Stat label="Nguyên liệu cần bổ sung" value={String(suggestions.length)} note="So với dự báo + tồn an toàn" /><Stat label="Tỷ lệ dự phòng" value="20%" note="Trên mức dùng bình quân/ngày" /></div>
-    <Card className="mb-5 overflow-hidden"><div className="border-b border-slate-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">Dự báo quy đổi món trên bill đã thanh toán qua công thức món; món bán sẵn quy đổi trực tiếp sang sản phẩm kho. Mức đề nghị = nhu cầu ngày mai + tồn tối thiểu − tồn khả dụng.</div>
+    <PageHeader title="Dự báo & đề xuất nhập" />
+    <div className="mb-5 grid gap-3 sm:grid-cols-3">
+      <Stat label="Bill đã thanh toán" value={String(paidOrders.length)} note={`Trong ${DAYS} ngày gần nhất`} icon={ReceiptTextIcon} tone="blue" />
+      <Stat label="Nguyên liệu cần bổ sung" value={String(suggestions.length)} note="So với dự báo + tồn an toàn" icon={PackagePlusIcon} tone="orange" />
+      <Stat label="Tỷ lệ dự phòng" value="20%" note="Trên mức dùng bình quân/ngày" icon={TrendingUpIcon} tone="violet" />
+    </div>
+    <Card className="mb-5 overflow-hidden">
       <div className="overflow-x-auto"><table className="w-full min-w-[1120px] text-sm"><thead><tr className="border-b text-left text-xs text-slate-500"><th className="p-3">Nguyên liệu</th><th>Đã dùng từ bill</th><th>Dự báo ngày mai</th><th>Tồn khả dụng</th><th>Đề xuất nhập</th><th>Nhà cung cấp gợi ý</th><th>Đơn giá</th><th>Trạng thái / thao tác</th></tr></thead><tbody>{allForecast.map(row=>{const needsOrder=row.quantity>0;const displayQty=quantities[row.ingredientId]??String(row.quantity);const supplierId=supplierIds[row.ingredientId]??row.supplierId;return <tr key={row.ingredientId} className="border-b"><td className="p-3 font-medium">{row.name} <span className="text-xs text-slate-500">({row.unit})</span></td><td>{formatQty(row.paidUsage,row.unit)}</td><td>{formatQty(row.forecast,row.unit)}</td><td>{formatQty(row.stock,row.unit)}</td><td>{needsOrder?<input type="number" min="0.001" step="0.001" className="w-28 rounded-lg border border-slate-200 px-2 py-1.5" value={displayQty} onChange={event=>setQuantities({...quantities,[row.ingredientId]:event.target.value})} />:'—'}</td><td>{needsOrder?<select className="max-w-56 rounded-lg border border-slate-200 px-2 py-1.5" value={supplierId} onChange={event=>setSupplierIds({...supplierIds,[row.ingredientId]:event.target.value})}>{suppliers.map(supplier=><option key={supplier.id} value={supplier.id}>{supplier.name}</option>)}</select>:'—'}</td><td>{needsOrder?formatVnd(row.unitCost):'—'}</td><td>{needsOrder?<div className="flex items-center gap-2"><Badge tone="amber" dot>Cần bổ sung</Badge><Button size="sm" onClick={()=>createDraft(row)}>Xác nhận & điền phiếu</Button></div>:<Badge tone="green">Đủ dự kiến</Badge>}</td></tr>;})}{!allForecast.length&&<tr><td colSpan={8} className="p-8 text-center text-slate-500">Chưa có dữ liệu nguyên liệu để dự báo.</td></tr>}</tbody></table></div>
       <div className="border-t border-slate-100 p-4"><p className="text-xs text-slate-500">Mỗi nguyên liệu cần bổ sung có nút riêng; xác nhận sẽ điền riêng sản phẩm đó vào phiếu đề nghị nhập.</p></div>
     </Card>
     {message&&<p role="status" className="text-sm text-brand-700">{message}</p>}
-    <p className="mt-4 text-xs text-slate-400">Mô hình dự báo demo chạy trên dữ liệu bill và công thức đang có trong trình duyệt; chưa dùng dịch vụ AI hoặc dữ liệu máy chủ.</p>
   </div>;
 }
 
-function Stat({label,value,note}:{label:string;value:string;note:string}){
-  return <Card className="p-4"><p className="text-xs text-slate-500">{label}</p><p className="mt-1 text-2xl font-bold text-slate-900">{value}</p><p className="mt-1 text-xs text-slate-400">{note}</p></Card>;
+function Stat({label,value,note,icon:Icon,tone}:{label:string;value:string;note:string;icon:LucideIcon;tone:'blue'|'orange'|'violet'}){
+  const styles={
+    blue:{card:'border-l-blue-800 !bg-blue-100/70',icon:'bg-blue-50 text-blue-800',value:'text-blue-900'},
+    orange:{card:'border-l-orange-500 !bg-orange-100/70',icon:'bg-orange-50 text-orange-700',value:'text-orange-900'},
+    violet:{card:'border-l-violet-500 !bg-violet-100/70',icon:'bg-violet-50 text-violet-700',value:'text-violet-900'}
+  };
+  const style=styles[tone];
+  return <Card className={`!rounded-xl !shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-slate-200 border-l-4 p-4 ${style.card}`}>
+    <div className="flex items-start justify-between gap-3">
+      <p className="text-xs font-bold uppercase tracking-wide text-slate-700">{label}</p>
+      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${style.icon}`}><Icon className="h-5 w-5" /></span>
+    </div>
+    <p className={`tabular mt-3 text-2xl font-bold ${style.value}`}>{value}</p>
+    <p className="mt-2 inline-flex rounded-full bg-white/70 px-2.5 py-1 text-[11px] font-medium text-slate-600">{note}</p>
+  </Card>;
 }

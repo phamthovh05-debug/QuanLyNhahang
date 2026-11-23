@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { BellIcon, ChevronDownIcon, MenuIcon, SearchIcon, UserCircle } from 'lucide-react';
+import { BellIcon, ChevronDownIcon, MenuIcon, UserCircle } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMetrics } from '../../hooks/useMetrics';
@@ -21,17 +21,19 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
   map((w) => w[0]).
   join('');
 
-  const allItems = navGroups.flatMap((group) => group.items);
-  const currentItem = allItems
+  const permittedItems = navGroups
+    .flatMap((group) => group.items)
+    .filter((item) => user && item.roles.includes(user.role));
+  const currentPath = `${location.pathname}${location.search}`;
+  const currentItem = permittedItems.find((item) => item.to === currentPath) ??
+    permittedItems
     .filter((item) =>
       item.to === location.pathname ||
       (item.to !== '/' && location.pathname.startsWith(`${item.to}/`)),
     )
     .sort((a, b) => b.to.length - a.to.length)[0];
   const pageTitle = currentItem?.label ?? 'Tổng quan';
-  const permittedItems = allItems.filter((item) => user && item.roles.includes(user.role));
   const quickActions = [
-    permittedItems.find((item) => /sơ đồ bàn/i.test(item.label)),
     permittedItems.find((item) => /nhập hàng|phiếu nhập/i.test(item.label)),
   ].filter((item, index, items) => item && items.findIndex((candidate) => candidate?.to === item.to) === index);
 
@@ -86,14 +88,6 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
             </NavLink>
           );
         })}
-
-        <div className="relative hidden w-56 xl:block">
-        <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        <input
-          type="search"
-          placeholder="Tìm nguyên liệu, mã lô, mã barcode, món ăn…"
-          className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-800 placeholder:text-slate-400 transition-colors focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100" />
-        </div>
 
         <p className="hidden text-sm text-slate-500 2xl:block">{today}</p>
 
